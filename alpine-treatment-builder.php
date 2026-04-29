@@ -422,7 +422,7 @@ function atb_render_settings_page() {
     </div><!-- .wrap -->
 
     <script>
-    (function($){
+    jQuery(function($){
         /* ── Color pickers ── */
         $('.atb-color-picker').each(function(){
             $(this).wpColorPicker({ defaultColor: $(this).data('default-color') });
@@ -473,7 +473,7 @@ function atb_render_settings_page() {
         $fontSelect.on('change', function(){ loadFont( $(this).val() ); });
         if ( $fontSelect.length ) loadFont( $fontSelect.val() );
 
-    })(jQuery);
+    });
     </script>
     <?php
 }
