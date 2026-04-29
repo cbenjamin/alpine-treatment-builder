@@ -218,7 +218,7 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
       <div class="llvc__content-column">
         <div class="llvc__content">
           <div class="llvc__intro__main">
-            <div class="llvc__heading--lg"><h2>Welcome to your Treatment Planner! 👋</h2></div>
+            <div class="llvc__heading--lg"><h2><?php echo esc_html( atb_text( 'intro_heading' ) ); ?></h2></div>
 
             <div class="llvc__intro__profile-image">
               <div class="llvc-fit-image object-cover object-center">
@@ -229,16 +229,16 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
               </div>
             </div>
 
-            <p class="llvc__intro__profile-name">Alpine Wellness</p>
-            <p>All virtual submissions are confidential and will only be shared with your Alpine Wellness Provider.</p>
+            <p class="llvc__intro__profile-name"><?php echo esc_html( atb_text( 'intro_name' ) ); ?></p>
+            <p><?php echo esc_html( atb_text( 'intro_privacy' ) ); ?></p>
           </div>
           <ol>
-            <li>Click on body parts to view concerns.</li>
-            <li>Select your concerns.</li>
-            <li>Submit &amp; receive your personalized treatment recommendations.</li>
+            <li><?php echo esc_html( atb_text( 'step_1' ) ); ?></li>
+            <li><?php echo esc_html( atb_text( 'step_2' ) ); ?></li>
+            <li><?php echo esc_html( atb_text( 'step_3' ) ); ?></li>
           </ol>
           <p class="llvc__mobile-start">
-            <button class="llvc__mobile-start-button llvc__button llvc__start-btn" type="button">Start Consultation</button>
+            <button class="llvc__mobile-start-button llvc__button llvc__start-btn" type="button"><?php echo esc_html( atb_text( 'start_btn' ) ); ?></button>
           </p>
         </div>
       </div>
@@ -247,7 +247,7 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
           <span class="llvc__start-icon-wrapper">
             <svg class="icon icon-llvc-cursor" aria-hidden="true"><use xlink:href="#icon-llvc-cursor"></use></svg>
           </span>
-          <span class="llvc__start-text">Click to get started!</span>
+          <span class="llvc__start-text"><?php echo esc_html( atb_text( 'start_icon' ) ); ?></span>
         </button>
       </div>
     </div>
@@ -275,9 +275,9 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
                 </button>
                 <h2 class="llvc__how-to-use__header">How to Use</h2>
                 <ol>
-                  <li>Click on body parts to view concerns.</li>
-                  <li>Select your concerns.</li>
-                  <li>Submit &amp; receive your personalized treatment recommendations.</li>
+                  <li><?php echo esc_html( atb_text( 'step_1' ) ); ?></li>
+                  <li><?php echo esc_html( atb_text( 'step_2' ) ); ?></li>
+                  <li><?php echo esc_html( atb_text( 'step_3' ) ); ?></li>
                 </ol>
               </div>
               <button class="llvc__how-to-use__toggle">
@@ -439,24 +439,24 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
               <div class="llvc__concerns__main is-active">
                 <div class="llvc__concerns__heading-row">
                   <h2 class="llvc__heading llvc__heading--concerns" id="concerns-heading">
-                    Your Selections <span class="llvc__total-selections">(0)</span>
+                    <?php echo esc_html( atb_text( 'selections_heading' ) ); ?> <span class="llvc__total-selections">(0)</span>
                   </h2>
                   <button class="llvc__concerns__clear" type="button" style="display:none;">
                     <svg class="icon icon-llvc-clear" aria-hidden="true"><use xlink:href="#icon-llvc-clear"></use></svg>
-                    Clear All
+                    <?php echo esc_html( atb_text( 'clear_btn' ) ); ?>
                   </button>
                 </div>
 
                 <button class="llvc__button llvc__finish-consultation llvc__finish-consultation--mobile" type="submit">
-                  Finish Treatment Plan
+                  <?php echo esc_html( atb_text( 'finish_btn' ) ); ?>
                 </button>
 
                 <div class="llvc__concerns-list--empty">
-                  <p>You haven&apos;t selected any concerns.</p>
+                  <p><?php echo esc_html( atb_text( 'empty_state' ) ); ?></p>
                 </div>
 
                 <div class="llvc__concerns-chosen--container" id="chosen">
-                  <p class="llvc__concerns-list--empty__instructions">Start by clicking on a body part on the model.</p>
+                  <p class="llvc__concerns-list--empty__instructions"><?php echo esc_html( atb_text( 'empty_instructions' ) ); ?></p>
                   <div class="llvc__concerns-chosen">
 
                     <?php /* ---- Chosen concern sections (one per term_id) ---- */ ?>
@@ -484,8 +484,8 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
 
                 <!-- Mobile: select more / finish -->
                 <div class="llvc__mobile-actions">
-                  <button class="llvc__button llvc__select-more-concerns" type="button">Select More Concerns</button>
-                  <button class="llvc__button llvc__finish-consultation" type="submit">Finish Treatment Plan</button>
+                  <button class="llvc__button llvc__select-more-concerns" type="button"><?php echo esc_html( atb_text( 'more_btn' ) ); ?></button>
+                  <button class="llvc__button llvc__finish-consultation" type="submit"><?php echo esc_html( atb_text( 'finish_btn' ) ); ?></button>
                 </div>
 
               </div><!-- /concerns__main -->
@@ -538,7 +538,7 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
           <div class="llvc__concerns__footer">
             <button class="llvc__button llvc__finish-consultation llvc__finish-consultation--desktop"
               form="" type="button" id="atb-finish-desktop">
-              Finish Treatment Plan
+              <?php echo esc_html( atb_text( 'finish_btn' ) ); ?>
             </button>
           </div>
 
@@ -555,9 +555,9 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
     <div class="llvc__container">
       <div class="llvc__form-content" aria-labelledby="form-heading" tabindex="-1" role="group">
         <div class="llvc__content">
-          <h2 class="llvc__heading--lg" id="form-heading">Almost done! 🙌</h2>
-          <p>Enter your contact information to instantly receive your customized treatment plan!</p>
-          <p>All of your information will be kept private and only shared with your Alpine Wellness provider.</p>
+          <h2 class="llvc__heading--lg" id="form-heading"><?php echo esc_html( atb_text( 'form_heading' ) ); ?></h2>
+          <p><?php echo esc_html( atb_text( 'form_intro' ) ); ?></p>
+          <p><?php echo esc_html( atb_text( 'form_privacy' ) ); ?></p>
         </div>
 
         <?php if ( atb_gf_active() ) :
@@ -593,11 +593,11 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
     data-ll-modal-escape=".llvc__popup-close">
     <div class="llvc__popup-inner">
       <div class="llvc__content">
-        <h2 class="llvc__heading--lg" id="exit-vc-title">Leaving so soon?</h2>
-        <p>If you exit out of your treatment planner now, you&apos;ll lose your custom results and have to start over.</p>
+        <h2 class="llvc__heading--lg" id="exit-vc-title"><?php echo esc_html( atb_text( 'exit_heading' ) ); ?></h2>
+        <p><?php echo esc_html( atb_text( 'exit_body' ) ); ?></p>
         <div class="llvc__popup__buttons">
-          <a href="<?php echo $home_url; ?>" class="llvc__button--ghost llvc__popup-exit-vc">Exit Treatment Planner</a>
-          <button class="llvc__button llvc__popup-close">Let&apos;s Keep Going!</button>
+          <a href="<?php echo $home_url; ?>" class="llvc__button--ghost llvc__popup-exit-vc"><?php echo esc_html( atb_text( 'exit_confirm' ) ); ?></a>
+          <button class="llvc__button llvc__popup-close"><?php echo esc_html( atb_text( 'exit_cancel' ) ); ?></button>
         </div>
       </div>
     </div>
@@ -612,11 +612,11 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
     data-ll-modal-close=".llvc__popup__switch-genders">
     <div class="llvc__popup-inner">
       <div class="llvc__content">
-        <h2 class="llvc__heading--lg" id="switch-title">Are you sure?</h2>
-        <p>If you switch, you&apos;ll lose any concerns you&apos;ve currently chosen.</p>
+        <h2 class="llvc__heading--lg" id="switch-title"><?php echo esc_html( atb_text( 'switch_heading' ) ); ?></h2>
+        <p><?php echo esc_html( atb_text( 'switch_body' ) ); ?></p>
         <div class="llvc__popup__buttons">
-          <button class="llvc__button--ghost llvc__popup-close llvc__popup-close-escape">Go Back</button>
-          <button class="llvc__button llvc__popup__switch-genders llvc__popup-close">Let&apos;s Switch</button>
+          <button class="llvc__button--ghost llvc__popup-close llvc__popup-close-escape"><?php echo esc_html( atb_text( 'switch_cancel' ) ); ?></button>
+          <button class="llvc__button llvc__popup__switch-genders llvc__popup-close"><?php echo esc_html( atb_text( 'switch_confirm' ) ); ?></button>
         </div>
       </div>
     </div>
