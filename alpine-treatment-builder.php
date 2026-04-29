@@ -3,14 +3,14 @@
  * Plugin Name: Alpine Treatment Builder
  * Plugin URI:  https://www.alpinewellnessnv.com/
  * Description: Interactive body-map treatment planner for Alpine Wellness.
- * Version:     1.0.3
+ * Version:     1.0.4
  * Author:      Alpine Wellness
  * Text Domain: alpine-tb
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ATB_VERSION', '1.0.3' );
+define( 'ATB_VERSION', '1.0.4' );
 define( 'ATB_URL',     plugin_dir_url( __FILE__ ) );
 define( 'ATB_PATH',    plugin_dir_path( __FILE__ ) );
 
