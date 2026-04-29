@@ -27,7 +27,7 @@ require_once ATB_PATH . 'lib/plugin-update-checker/plugin-update-checker.php';
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 $atb_updater = PucFactory::buildUpdateChecker(
-    'https://github.com/alpinewellnessnv/alpine-treatment-builder',
+    'https://github.com/cbenjamin/alpine-treatment-builder',
     __FILE__,
     'alpine-treatment-builder'
 );
