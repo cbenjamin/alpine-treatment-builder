@@ -3,23 +3,23 @@
  * Plugin Name: Alpine Treatment Builder
  * Plugin URI:  https://www.alpinewellnessnv.com/
  * Description: Interactive body-map treatment planner for Alpine Wellness.
- * Version:     1.0.1
+ * Version:     1.0.2
  * Author:      Alpine Wellness
  * Text Domain: alpine-tb
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ATB_VERSION', '1.0.1' );
+define( 'ATB_VERSION', '1.0.2' );
 define( 'ATB_URL',     plugin_dir_url( __FILE__ ) );
 define( 'ATB_PATH',    plugin_dir_path( __FILE__ ) );
 
 /* ===============================================================
  * AUTOMATIC UPDATES VIA GITHUB
  * How to release an update:
- *  1. Bump ATB_VERSION above and the "Version:" header at the top.
- *  2. Commit + push to GitHub.
- *  3. Create a GitHub Release tagged vX.Y.Z.
+ *  1. Commit your changes and run `git push` — the pre-push hook
+ *     auto-increments ATB_VERSION and the Version header.
+ *  2. Create a GitHub Release tagged vX.Y.Z.
  * ============================================================= */
 require_once ATB_PATH . 'lib/plugin-update-checker/plugin-update-checker.php';
 
