@@ -11,6 +11,8 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'ATB_VERSION', '1.0.0' );
+define( 'ATB_URL',     plugin_dir_url( __FILE__ ) );
+define( 'ATB_PATH',    plugin_dir_path( __FILE__ ) );
 
 /* ===============================================================
  * AUTOMATIC UPDATES VIA GITHUB
@@ -43,8 +45,6 @@ if ( defined( 'ATB_GITHUB_TOKEN' ) && ATB_GITHUB_TOKEN ) {
 // Pull version info from GitHub Releases (tags), not branch heads
 $atb_updater->setBranch( 'main' );
 $atb_updater->getVcsApi()->enableReleaseAssets();
-define( 'ATB_URL',     plugin_dir_url( __FILE__ ) );
-define( 'ATB_PATH',    plugin_dir_path( __FILE__ ) );
 
 /* ===============================================================
  * HELPERS
