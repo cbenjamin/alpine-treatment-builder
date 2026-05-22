@@ -1596,26 +1596,16 @@ add_action( 'wp_enqueue_scripts', function () {
 jQuery( function ( $ ) {
     if ( ! window.atbFormData || ! atbFormData.resultsUrl ) return;
 
-    /* 1. Before WPForms submits: capture concerns from the treatment-builder
-     *    hidden field (which lives in a separate <form> element and is NOT
-     *    sent with the WPForms AJAX request). */
-    $( document ).on( 'submit', '.wpforms-form', function () {
-        var raw = $( '[name="concerns_json"]' ).val() || '';
-        if ( raw ) {
-            try {
-                var ids = Object.keys( JSON.parse( raw ) );
-                sessionStorage.setItem( 'atb_pending_concerns', JSON.stringify( ids ) );
-            } catch ( e ) {}
-        }
-
-        /* Try to grab the first name from the WPForms name field. */
-        var fname = $( this )
-            .find( '.wpforms-field-name-first input, input[autocomplete="given-name"]' )
-            .first().val() || '';
-        sessionStorage.setItem( 'atb_pending_username', ( fname.trim().split( ' ' )[0] ) || '' );
+    /* Concerns are saved to sessionStorage at the step 2→3 transition
+     * (in alpine-tb.js), so by the time WPForms AJAX completes the data
+     * is already there.  We also listen for the user typing their first
+     * name into the WPForms form and refresh the stored username. */
+    $( document ).on( 'input change', '.wpforms-form .wpforms-field-name-first input, .wpforms-form input[autocomplete="given-name"]', function () {
+        var fname = $( this ).val().trim().split( ' ' )[0] || '';
+        try { sessionStorage.setItem( 'atb_pending_username', fname ); } catch ( ex ) {}
     } );
 
-    /* 2. After WPForms AJAX succeeds: redirect to results page.
+    /* After WPForms AJAX succeeds: redirect to results page.
      *
      * WPForms 1.8+ fires "wpformsAjaxSubmitSuccess" on the <form> element,
      * which bubbles up to document. Older versions used "wpformsAjaxRequestSuccess".

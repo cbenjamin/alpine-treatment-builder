@@ -331,6 +331,33 @@ jQuery( document ).ready( function ( $ ) {
 		// Fallback: also write to any visible atb-concerns input (future-proofing)
 		$( '.llvc__form input.atb-concerns' ).val( concernsJson );
 
+		// Build a { concernId: true } map for the WPForms redirect handler.
+		// The redirect JS reads input[name="concerns_json"] and sends the keys
+		// (concern IDs) as URL params to the results page.
+		var selectedMap = {};
+		$( '.llvc__chosen-concern.is-active' ).each( function () {
+			var cid = $( this ).data( 'term' );
+			if ( cid ) selectedMap[ cid ] = true;
+		} );
+		$( 'input[name="concerns_json"]' ).val( JSON.stringify( selectedMap ) );
+
+		// Also save directly to sessionStorage now — WPForms' jQuery Validate
+		// calls stopImmediatePropagation() on the submit event so our document-
+		// level submit listener never fires. Saving here guarantees the data is
+		// available when wpformsAjaxSubmitSuccess fires after AJAX completes.
+		if ( window.atbFormData && atbFormData.resultsUrl ) {
+			var concernIds = Object.keys( selectedMap );
+			if ( concernIds.length ) {
+				try { sessionStorage.setItem( 'atb_pending_concerns', JSON.stringify( concernIds ) ); } catch ( ex ) {}
+			}
+			// Try to get the first name from the WPForms name field (may be
+			// empty at this point if user hasn't filled it yet — that's OK).
+			var fname = $( '.wpforms-form' )
+				.find( '.wpforms-field-name-first input, input[autocomplete="given-name"]' )
+				.first().val() || '';
+			try { sessionStorage.setItem( 'atb_pending_username', ( fname.trim().split( ' ' )[0] ) || '' ); } catch ( ex ) {}
+		}
+
 		// Advance to step 3
 		changeFocus( 'next' );
 		$( '.llvc__screen' ).toggleClass( 'is-active' );
