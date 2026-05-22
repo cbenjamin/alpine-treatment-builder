@@ -1253,10 +1253,18 @@ function atb_page_has_shortcode() {
     return is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'alpine_treatment_builder' );
 }
 
+function atb_page_has_results_shortcode() {
+    global $post;
+    return is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'atb_results' );
+}
+
 add_filter( 'body_class', function ( $classes ) {
     if ( atb_page_has_shortcode() ) {
         $classes[] = 'atb-page';
         if ( atb_use_theme_chrome() ) $classes[] = 'atb-page--with-chrome';
+    }
+    if ( atb_page_has_results_shortcode() ) {
+        $classes[] = 'atb-results-page';
     }
     return $classes;
 } );
@@ -1440,6 +1448,89 @@ add_action( 'wp_enqueue_scripts', function () {
             max-width: 100% !important; width: 100% !important;
         }
 
+        /* ── RESULTS PAGE full-screen ── */
+        body.atb-results-page {
+            overflow-x: hidden !important;
+            background-color: var(--llvcBaseBackground, #f1eadb) !important;
+            background-image: none !important;
+        }
+        /* Hide theme chrome */
+        body.atb-results-page header:not(.llvc-navbar),
+        body.atb-results-page .site-header,
+        body.atb-results-page .navbar:not(.llvc-navbar),
+        body.atb-results-page footer,
+        body.atb-results-page .site-footer,
+        body.atb-results-page .entry-header,
+        body.atb-results-page h1.entry-title,
+        body.atb-results-page .page-title,
+        body.atb-results-page .site-main > .page-header,
+        body.atb-results-page .ast-breadcrumbs-wrapper { display: none !important; }
+        /* Strip Astra/theme containers */
+        body.atb-results-page main,
+        body.atb-results-page #main,
+        body.atb-results-page .site-main,
+        body.atb-results-page #primary,
+        body.atb-results-page #content,
+        body.atb-results-page .entry-content,
+        body.atb-results-page .content-area,
+        body.atb-results-page .wrap,
+        body.atb-results-page [class*="ast-container"],
+        body.atb-results-page .ast-grid-row,
+        body.atb-results-page .ast-article-single,
+        body.atb-results-page [class*="ast-article"],
+        body.atb-results-page .fl-row,
+        body.atb-results-page .fl-row-content,
+        body.atb-results-page .container:not(.llvc__container) {
+            padding: 0 !important; margin: 0 !important;
+            max-width: 100% !important; width: 100% !important;
+            background: transparent !important;
+            border: none !important; box-shadow: none !important;
+        }
+        /* Navbar: fixed at top */
+        body.atb-results-page .llvc-navbar {
+            position: fixed !important;
+            top: var(--wp-admin--admin-bar--height, 0px) !important;
+            left: 0 !important; right: 0 !important;
+            z-index: 9999 !important;
+            width: 100% !important;
+        }
+        /* Heading overrides — beat Astra H1/H2/H3 rules */
+        body.atb-results-page .llvc__heading--xs {
+            font-size: 12px !important;
+            font-weight: 500 !important;
+            color: #666a6b !important;
+            letter-spacing: 0.08em !important;
+            text-transform: uppercase !important;
+            margin: 0 0 8px !important;
+            display: block !important;
+            line-height: 1.4 !important;
+        }
+        body.atb-results-page .llvc__heading--xl {
+            font-size: 32px !important;
+            font-weight: 600 !important;
+            color: var(--llvcHeader, #091714) !important;
+            margin: 0 0 20px !important;
+            line-height: 1.2 !important;
+            display: block !important;
+        }
+        body.atb-results-page .llvc__results-concern__name {
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            color: var(--llvcHeader, #091714) !important;
+            margin: 0 0 20px !important;
+        }
+        body.atb-results-page .llvc__procedure-card__title {
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            color: var(--llvcHeader, #091714) !important;
+            margin: 0 0 12px !important;
+            line-height: 1.3 !important;
+        }
+        /* Results wrapper: account for fixed navbar */
+        body.atb-results-page .llvc--results {
+            padding-top: calc(var(--wp-admin--admin-bar--height, 0px) + 58px + 56px) !important;
+        }
+
         /* ── WITH-CHROME (theme header/footer visible) ── */
         body.atb-page--with-chrome .llvc-navbar {
             position: sticky !important; top: 0 !important; z-index: 100 !important;
@@ -1576,90 +1667,444 @@ function atb_render_results_page() {
     $concern_ids  = json_decode( rawurldecode( $raw_concerns ), true );
     if ( ! is_array( $concern_ids ) ) $concern_ids = [];
 
-    $username   = sanitize_text_field( isset( $_GET['username'] ) ? rawurldecode( $_GET['username'] ) : 'You' );
-    $treatments = atb_get_treatments_for_concerns( $concern_ids );
+    $username = sanitize_text_field( isset( $_GET['username'] ) ? rawurldecode( $_GET['username'] ) : 'You' );
 
-    // Build a map of concern_id => label for display
+    // Build concern label + body-area lookup
     $concern_label_map = [];
+    $concern_area_map  = []; // concern_id => section_label
     foreach ( atb_get_body_areas() as $area ) {
         foreach ( $area['concerns'] as $c ) {
             $concern_label_map[ $c['id'] ] = $c['label'];
+            $concern_area_map[ $c['id'] ]  = $area['section_label'];
         }
+    }
+
+    // Get all matching treatments, then group by concern
+    $all_treatments     = atb_get_treatments_for_concerns( $concern_ids );
+    $concern_treatments = [];
+    foreach ( $concern_ids as $cid ) {
+        $concern_treatments[ $cid ] = [];
+    }
+    foreach ( $all_treatments as $treatment ) {
+        $t_concerns = get_post_meta( $treatment->ID, '_atb_concern' ); // array of IDs
+        foreach ( $concern_ids as $cid ) {
+            if ( in_array( $cid, $t_concerns, true ) ) {
+                $concern_treatments[ $cid ][] = $treatment;
+            }
+        }
+    }
+    // Drop concerns that matched no treatments
+    $concern_treatments = array_filter( $concern_treatments );
+
+    // Collect unique body-area labels for the intro sentence
+    $area_labels = array_values( array_unique( array_filter(
+        array_map( fn( $cid ) => $concern_area_map[ $cid ] ?? '', $concern_ids )
+    ) ) );
+
+    // Logo
+    $logo_url = '';
+    $logo_id  = get_theme_mod( 'custom_logo' );
+    if ( $logo_id ) {
+        $img_data = wp_get_attachment_image_src( $logo_id, 'full' );
+        if ( $img_data ) $logo_url = $img_data[0];
     }
 
     ob_start();
     ?>
-    <div class="atb-results">
-        <div class="atb-results__header">
-            <h1 class="atb-results__title">OUR RECOMMENDATIONS</h1>
-            <p class="atb-results__subtitle">Made for <?php echo esc_html( $username ); ?></p>
-            <?php if ( ! empty( $concern_ids ) ) : ?>
-            <p class="atb-results__intro">Here's a list of the best-suited treatments for you!</p>
-            <div class="atb-results__selected-concerns">
-                <h2>Your Selected Concerns</h2>
-                <ul>
-                <?php foreach ( $concern_ids as $cid ) : ?>
-                    <li><?php echo esc_html( $concern_label_map[ $cid ] ?? $cid ); ?></li>
-                <?php endforeach; ?>
-                </ul>
+    <!-- ── Results Navbar ─────────────────────────────────────────── -->
+    <header class="llvc-navbar">
+        <div class="llvc-navbar__flex">
+            <div class="llvc-navbar__spacer-col"></div>
+            <a class="llvc-navbar__logo-link" href="<?php echo esc_url( home_url( '/' ) ); ?>">
+                <?php if ( $logo_url ) : ?>
+                <img class="llvc-navbar__logo" src="<?php echo esc_url( $logo_url ); ?>" alt="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
+                <?php else : ?>
+                <span class="llvc-navbar__site-name"><?php echo esc_html( get_bloginfo( 'name' ) ); ?></span>
+                <?php endif; ?>
+            </a>
+            <div class="llvc-navbar__exit-col">
+                <a class="llvc-navbar__exit" href="javascript:history.back()">
+                    Exit
+                    <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:6px;vertical-align:-2px"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
             </div>
-            <?php endif; ?>
         </div>
+    </header>
 
-        <?php if ( empty( $treatments ) ) : ?>
-        <p class="atb-results__empty">No treatment recommendations found for the selected concerns. Please contact us for a personalized consultation.</p>
-        <?php else : ?>
-        <div class="atb-results__treatments">
-            <?php foreach ( $treatments as $treatment ) :
-                $teaser    = get_post_meta( $treatment->ID, '_atb_teaser', true );
-                $url       = get_post_meta( $treatment->ID, '_atb_url',    true );
-                $cats      = get_the_terms( $treatment->ID, 'atb_treatment_cat' );
-                $cat_name  = ( ! is_wp_error( $cats ) && ! empty( $cats ) ) ? $cats[0]->name : '';
-                // Find which of the user's concerns triggered this treatment
-                $treatment_concerns = get_post_meta( $treatment->ID, '_atb_concern' ); // array
-                $triggered_by       = array_intersect( $concern_ids, $treatment_concerns );
-                $triggered_labels   = array_map( fn( $id ) => $concern_label_map[ $id ] ?? $id, $triggered_by );
+    <!-- ── Results Content ───────────────────────────────────────── -->
+    <div class="llvc--results">
+        <div class="llvc__container">
+
+            <!-- Intro block -->
+            <div class="llvc__results__intro-wrapper">
+                <button class="llvc__results-print" onclick="window.print()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+                    Print a Copy
+                </button>
+                <div class="llvc__results__intro">
+                    <div class="llvc__content">
+                        <h1 class="llvc__heading--xs">OUR RECOMMENDATIONS</h1>
+                        <p class="llvc__heading--xl">Made for <?php echo esc_html( $username ); ?></p>
+                        <?php if ( ! empty( $area_labels ) ) : ?>
+                        <p>Your recommendation is based on your goals to focus on the
+                            <?php
+                            $n = count( $area_labels );
+                            foreach ( $area_labels as $i => $lbl ) {
+                                echo '<span class="llvc__feature-text">' . esc_html( $lbl ) . '</span>';
+                                if ( $i < $n - 2 ) echo ', ';
+                                elseif ( $i < $n - 1 ) echo ' and ';
+                            }
+                            ?>.
+                        </p>
+                        <?php endif; ?>
+                        <p class="llvc__wysiwyg">Here's a list of the best-suited treatments for you!</p>
+                    </div>
+                </div>
+            </div>
+
+            <?php if ( empty( $concern_treatments ) ) : ?>
+            <div class="llvc__results-empty">
+                <p>No treatment recommendations found for the selected concerns. Please contact us for a personalized consultation.</p>
+            </div>
+            <?php else : ?>
+
+            <?php foreach ( $concern_treatments as $cid => $treatments ) :
+                $concern_label = $concern_label_map[ $cid ] ?? $cid;
+                $area_label    = $concern_area_map[ $cid ] ?? '';
             ?>
-            <div class="atb-results__treatment-card">
-                <?php if ( $cat_name ) : ?>
-                <span class="atb-results__cat-badge"><?php echo esc_html( $cat_name ); ?></span>
-                <?php endif; ?>
-                <h2 class="atb-results__treatment-name"><?php echo esc_html( $treatment->post_title ); ?></h2>
-                <?php if ( $teaser ) : ?>
-                <p class="atb-results__teaser"><?php echo esc_html( $teaser ); ?></p>
-                <?php elseif ( $treatment->post_content ) : ?>
-                <p class="atb-results__teaser"><?php echo wp_trim_words( wp_strip_all_tags( $treatment->post_content ), 40 ); ?></p>
-                <?php endif; ?>
-                <?php if ( ! empty( $triggered_labels ) ) : ?>
-                <p class="atb-results__triggered-by">Recommended based on: <strong><?php echo esc_html( implode( ', ', $triggered_labels ) ); ?></strong></p>
-                <?php endif; ?>
-                <?php if ( $url ) : ?>
-                <a href="<?php echo esc_url( $url ); ?>" class="atb-results__learn-more">Learn More about <?php echo esc_html( $treatment->post_title ); ?></a>
-                <?php endif; ?>
+            <div class="llvc__results-concern">
+                <div class="llvc__results-concern__inner">
+
+                    <!-- Left: concern info -->
+                    <div class="llvc__results-concern__intro">
+                        <h2 class="llvc__results-concern__name"><?php echo esc_html( $concern_label ); ?></h2>
+                        <p>These are the treatments we recommend.</p>
+                        <?php if ( $area_label ) : ?>
+                        <ul class="llvc__results-concern__areas">
+                            <li><span class="llvc__feature-text"><?php echo esc_html( $area_label ); ?></span></li>
+                        </ul>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Right: treatment cards -->
+                    <div class="llvc__results-concern__procedures">
+                        <div class="llvc__results-concern__procedures-cards">
+                            <?php foreach ( $treatments as $treatment ) :
+                                $teaser   = get_post_meta( $treatment->ID, '_atb_teaser', true );
+                                $url      = get_post_meta( $treatment->ID, '_atb_url',    true );
+                                $cats     = get_the_terms( $treatment->ID, 'atb_treatment_cat' );
+                                $cat_name = ( ! is_wp_error( $cats ) && ! empty( $cats ) ) ? $cats[0]->name : '';
+                                $desc     = $teaser ?: wp_trim_words( wp_strip_all_tags( $treatment->post_content ), 50 );
+                            ?>
+                            <div class="llvc__procedure-card__wrapper">
+                                <div class="llvc__procedure-card">
+                                    <div class="llvc__procedure-card__body">
+                                        <div class="llvc__procedure-card__content">
+                                            <?php if ( $cat_name ) : ?>
+                                            <span class="llvc__procedure-card__tag"><?php echo esc_html( $cat_name ); ?></span>
+                                            <?php endif; ?>
+                                            <h3 class="llvc__procedure-card__title"><?php echo esc_html( $treatment->post_title ); ?></h3>
+                                            <?php if ( $desc ) : ?>
+                                            <p><?php echo esc_html( $desc ); ?></p>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php if ( $url ) : ?>
+                                        <div class="llvc__procedure-card__learn-more">
+                                            <a href="<?php echo esc_url( $url ); ?>" class="llvc__procedure-card__learn-more-button">Learn More</a>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                </div>
             </div>
             <?php endforeach; ?>
+
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
     </div>
+
     <style>
-    .atb-results { max-width: 900px; margin: 0 auto; padding: 40px 20px; font-family: inherit; }
-    .atb-results__header { margin-bottom: 40px; }
-    .atb-results__title { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
-    .atb-results__subtitle { font-size: 1.25rem; color: #666; margin-bottom: 16px; }
-    .atb-results__selected-concerns { background: #f9f5ef; border-radius: 8px; padding: 16px 24px; margin-bottom: 24px; }
-    .atb-results__selected-concerns h2 { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
-    .atb-results__selected-concerns ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-    .atb-results__selected-concerns li { background: #fff; border: 1px solid #ddd; border-radius: 20px; padding: 4px 12px; font-size: 0.9rem; }
-    .atb-results__treatments { display: grid; gap: 24px; }
-    .atb-results__treatment-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 28px; background: #fff; }
-    .atb-results__cat-badge { display: inline-block; background: #f1eadb; color: #7a4a25; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 10px; border-radius: 12px; margin-bottom: 12px; }
-    .atb-results__treatment-name { font-size: 1.5rem; font-weight: 700; margin: 0 0 12px; }
-    .atb-results__teaser { color: #444; line-height: 1.6; margin-bottom: 16px; }
-    .atb-results__triggered-by { font-size: 0.9rem; color: #666; margin-bottom: 16px; }
-    .atb-results__triggered-by strong { color: #a3663c; }
-    .atb-results__learn-more { display: inline-block; background: #a3663c; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; }
-    .atb-results__learn-more:hover { background: #8a5230; color: #fff; }
-    .atb-results__empty { text-align: center; padding: 60px 20px; color: #666; }
+    /* ── Results: Navbar ──────────────────────────────────────── */
+    body.atb-results-page .llvc-navbar {
+        position: fixed;
+        top: var(--wp-admin--admin-bar--height, 0px);
+        left: 0; right: 0;
+        z-index: 9999;
+        background-color: var(--llvcNavbarBackground, #0d211d);
+        color: var(--llvcNavbarLink, #f7f4ef);
+        padding: 12px 0;
+        display: flex;
+        align-items: center;
+    }
+    body.atb-results-page .llvc-navbar__flex {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 1270px;
+        margin: 0 auto;
+        padding: 0 50px;
+    }
+    body.atb-results-page .llvc-navbar__spacer-col {
+        width: 55px;
+    }
+    body.atb-results-page .llvc-navbar__exit-col {
+        width: 55px;
+        text-align: right;
+    }
+    body.atb-results-page .llvc-navbar__logo-link {
+        display: block;
+        line-height: 0;
+    }
+    body.atb-results-page .llvc-navbar__logo {
+        height: 34px;
+        width: auto;
+    }
+    body.atb-results-page .llvc-navbar__site-name {
+        color: var(--llvcNavbarLink, #f7f4ef);
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+    }
+    body.atb-results-page .llvc-navbar__exit {
+        color: var(--llvcNavbarLink, #f7f4ef);
+        text-decoration: none;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+    }
+    body.atb-results-page .llvc-navbar__exit:hover {
+        color: var(--llvcNavbarLinkHover, #c97e4a);
+    }
+
+    /* ── Results: Page wrapper ────────────────────────────────── */
+    .llvc--results {
+        background-color: var(--llvcBaseBackground, #f1eadb);
+        padding-top: calc(var(--wp-admin--admin-bar--height, 0px) + 58px + 56px);
+        padding-bottom: 80px;
+        min-height: 100vh;
+        color: var(--llvcBodyText, #21403e);
+        font-family: inherit;
+        box-sizing: border-box;
+    }
+    .llvc--results .llvc__container {
+        max-width: 1270px;
+        margin: 0 auto;
+        padding: 0 50px;
+        box-sizing: border-box;
+    }
+
+    /* ── Results: Intro ───────────────────────────────────────── */
+    .llvc__results__intro-wrapper {
+        position: relative;
+        margin-bottom: 96px;
+    }
+    .llvc__results-print {
+        position: absolute;
+        right: 0;
+        top: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        color: #666a6b;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        cursor: pointer;
+        padding: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+    }
+    .llvc__results__intro {
+        max-width: 570px;
+        margin: 0 auto;
+        text-align: center;
+    }
+    .llvc__heading--xs {
+        font-size: 12px;
+        font-weight: 500;
+        color: #666a6b;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0 0 8px;
+        display: block;
+    }
+    .llvc__heading--xl {
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--llvcHeader, #091714);
+        margin: 0 0 20px;
+        line-height: 1.2;
+        display: block;
+    }
+    .llvc__results__intro .llvc__content > p {
+        font-size: 16px;
+        color: var(--llvcBodyText, #21403e);
+        line-height: 1.6;
+        margin: 0 0 20px;
+    }
+    .llvc__wysiwyg { margin-bottom: 20px; }
+    .llvc__feature-text {
+        font-weight: 600;
+        color: var(--llvcBodyText, #21403e);
+    }
+
+    /* ── Results: Concern group row ───────────────────────────── */
+    .llvc__results-concern {
+        margin-bottom: 48px;
+        padding-bottom: 48px;
+        border-bottom: 1px solid #cccccc;
+    }
+    .llvc__results-concern:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    .llvc__results-concern__inner {
+        display: flex;
+        margin: 0 -16px;
+    }
+    .llvc__results-concern__intro {
+        flex: 0 0 25%;
+        padding: 0 16px;
+        box-sizing: border-box;
+    }
+    .llvc__results-concern__name {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--llvcHeader, #091714);
+        margin: 0 0 20px;
+    }
+    .llvc__results-concern__intro > p {
+        font-size: 16px;
+        color: var(--llvcBodyText, #21403e);
+        margin: 0 0 16px;
+        line-height: 1.5;
+    }
+    .llvc__results-concern__areas {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .llvc__results-concern__areas li {
+        margin-bottom: 4px;
+    }
+    .llvc__results-concern__procedures {
+        flex: 0 0 75%;
+        padding: 0 16px;
+        box-sizing: border-box;
+    }
+    .llvc__results-concern__procedures-cards {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -16px;
+    }
+
+    /* ── Results: Treatment card ──────────────────────────────── */
+    .llvc__procedure-card__wrapper {
+        flex: 0 0 calc(33.333%);
+        max-width: calc(33.333%);
+        padding: 0 16px;
+        margin-bottom: 32px;
+        box-sizing: border-box;
+    }
+    .llvc__procedure-card {
+        border: 1px solid #9c9c9c;
+        border-radius: 12px;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .llvc__procedure-card__body {
+        background: #ffffff;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+    .llvc__procedure-card__content {
+        flex: 1;
+        margin-bottom: 20px;
+    }
+    .llvc__procedure-card__tag {
+        display: inline-block;
+        background: var(--llvcBaseBackground, #f1eadb);
+        border: 1px solid #9c9c9c;
+        color: var(--llvcBodyText, #21403e);
+        font-size: 14px;
+        padding: 4px 16px;
+        border-radius: 100px;
+        margin-bottom: 12px;
+    }
+    .llvc__procedure-card__title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--llvcHeader, #091714);
+        margin: 0 0 12px;
+        line-height: 1.3;
+    }
+    .llvc__procedure-card__content > p {
+        font-size: 16px;
+        color: var(--llvcBodyText, #21403e);
+        line-height: 1.6;
+        margin: 0;
+    }
+    .llvc__procedure-card__learn-more {
+        margin-top: auto;
+        padding-top: 16px;
+    }
+    .llvc__procedure-card__learn-more-button {
+        font-size: 14px;
+        color: var(--llvcBodyText, #21403e);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        text-decoration-color: currentColor;
+    }
+    .llvc__procedure-card__learn-more-button:hover {
+        color: var(--llvcPrimary, #a3663c);
+    }
+
+    /* ── Results: Empty state ─────────────────────────────────── */
+    .llvc__results-empty {
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--llvcBodyText, #21403e);
+        font-size: 18px;
+    }
+
+    /* ── Responsive ───────────────────────────────────────────── */
+    @media (max-width: 1200px) {
+        .llvc__procedure-card__wrapper { flex: 0 0 50%; max-width: 50%; }
+    }
+    @media (max-width: 900px) {
+        .llvc__results-concern__inner { flex-direction: column; margin: 0; }
+        .llvc__results-concern__intro { flex: none; width: 100%; padding: 0; margin-bottom: 24px; }
+        .llvc__results-concern__procedures { flex: none; width: 100%; padding: 0; }
+        .llvc__results-concern__procedures-cards { margin: 0 -8px; }
+        .llvc__procedure-card__wrapper { padding: 0 8px; margin-bottom: 16px; }
+    }
+    @media (max-width: 600px) {
+        .llvc--results .llvc__container { padding: 0 20px; }
+        body.atb-results-page .llvc-navbar__flex { padding: 0 20px; }
+        .llvc__heading--xl { font-size: 24px; }
+        .llvc__results__intro-wrapper { margin-bottom: 48px; }
+        .llvc__results-print { position: static; margin-bottom: 16px; }
+        .llvc__procedure-card__wrapper { flex: 0 0 100%; max-width: 100%; }
+    }
+    @media print {
+        body.atb-results-page .llvc-navbar { position: static; }
+        .llvc__results-print { display: none; }
+    }
     </style>
     <?php
     return ob_get_clean();
