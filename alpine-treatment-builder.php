@@ -1228,82 +1228,21 @@ add_filter( 'gform_confirmation', function ( $confirmation, $form, $entry, $ajax
 }, 10, 4 );
 
 /* ===============================================================
- * WPFORMS: append concerns + redirect to results page
+ * WPFORMS: redirect to results page after submission
  * ============================================================= */
 
-/**
- * Helper: extract concern IDs and first name from WPForms fields array.
- * Returns [ 'concern_ids' => [], 'first_name' => '' ]
+/*
+ * WPForms submits via its own <form> element (AJAX), which means the
+ * concerns_json hidden field from the treatment builder's <form> is NOT
+ * included in the WPForms submission. Server-side extraction is therefore
+ * not possible without adding a WPForms-managed hidden field.
+ *
+ * Instead we handle this entirely client-side:
+ *   1. Before WPForms submits  → save concerns to sessionStorage
+ *   2. After WPForms succeeds  → redirect to results page with those concerns
+ *
+ * The inline script is injected in wp_enqueue_scripts (see ASSETS section).
  */
-function atb_extract_wpf_data( array $fields ) {
-    $concern_ids = [];
-    $first_name  = '';
-
-    foreach ( $fields as $field ) {
-        $type  = $field['type']  ?? '';
-        $name  = $field['name']  ?? $field['label'] ?? '';
-        $value = $field['value'] ?? '';
-
-        // Concerns hidden field — identified by its label containing "concern"
-        if ( stripos( $name, 'concern' ) !== false && $value ) {
-            $decoded = json_decode( $value, true );
-            if ( is_array( $decoded ) ) {
-                $concern_ids = array_keys( $decoded );
-                continue;
-            }
-        }
-
-        // First name field
-        if ( ! $first_name && in_array( $type, [ 'name', 'text' ], true ) && stripos( $name, 'name' ) !== false ) {
-            $val = trim( $field['first'] ?? $value );
-            if ( $val ) $first_name = explode( ' ', $val )[0];
-        }
-    }
-
-    return compact( 'concern_ids', 'first_name' );
-}
-
-// Append concerns to WPForms email notification
-add_action( 'wpforms_process_complete', function ( $fields, $entry, $form_data, $entry_id ) {
-    if ( 'wpforms' !== atb_form_plugin() ) return;
-    if ( (int) $form_data['id'] !== atb_get_wpf_form_id() ) return;
-
-    $extracted = atb_extract_wpf_data( $fields );
-    if ( empty( $extracted['concern_ids'] ) ) return;
-
-    // Store for the redirect filter below (same request, globals are fine)
-    $GLOBALS['atb_wpf_concern_ids'] = $extracted['concern_ids'];
-    $GLOBALS['atb_wpf_first_name']  = $extracted['first_name'];
-}, 10, 4 );
-
-// Override WPForms confirmation to redirect to results page
-add_action( 'wpforms_process_complete', function ( $fields, $entry, $form_data, $entry_id ) {
-    if ( 'wpforms' !== atb_form_plugin() ) return;
-    if ( (int) $form_data['id'] !== atb_get_wpf_form_id() ) return;
-
-    $results_page_id = (int) get_option( 'atb_results_page_id', 0 );
-    if ( ! $results_page_id ) return;
-
-    $concern_ids = $GLOBALS['atb_wpf_concern_ids'] ?? [];
-    $first_name  = $GLOBALS['atb_wpf_first_name']  ?? 'You';
-
-    $redirect_url = add_query_arg( [
-        'concerns' => rawurlencode( json_encode( $concern_ids ) ),
-        'username' => rawurlencode( $first_name ?: 'You' ),
-    ], get_permalink( $results_page_id ) );
-
-    if ( wp_doing_ajax() ) {
-        // WPForms reads this response format on the front end
-        wp_send_json_success( [
-            'confirmation_type' => 'redirect',
-            'redirect'          => esc_url_raw( $redirect_url ),
-        ] );
-        exit;
-    }
-
-    wp_redirect( esc_url_raw( $redirect_url ) );
-    exit;
-}, 20, 4 ); // priority 20 — runs after the data-extraction hook above
 
 /* ===============================================================
  * PAGE DETECTION + BODY CLASS
@@ -1546,6 +1485,70 @@ add_action( 'wp_enqueue_scripts', function () {
         'homeUrl' => esc_url( home_url() ),
         'svgUrl'  => ATB_URL . 'public/svg/',
     ] );
+
+    // ── WPForms redirect (client-side) ────────────────────────────────────────
+    // Pass results URL and form info to JS so the redirect can be handled
+    // entirely in the browser after WPForms' AJAX submission completes.
+    if ( 'wpforms' === atb_form_plugin() ) {
+        $results_pid = (int) get_option( 'atb_results_page_id', 0 );
+        wp_add_inline_script( 'atb-script', sprintf(
+            'var atbFormData = %s;',
+            wp_json_encode( [
+                'formPlugin' => 'wpforms',
+                'wpfFormId'  => atb_get_wpf_form_id(),
+                'resultsUrl' => $results_pid ? get_permalink( $results_pid ) : '',
+            ] )
+        ), 'before' );
+
+        wp_add_inline_script( 'atb-script', <<<'JSCODE'
+jQuery( function ( $ ) {
+    if ( ! window.atbFormData || ! atbFormData.resultsUrl ) return;
+
+    /* 1. Before WPForms submits: capture concerns from the treatment-builder
+     *    hidden field (which lives in a separate <form> element and is NOT
+     *    sent with the WPForms AJAX request). */
+    $( document ).on( 'submit', '.wpforms-form', function () {
+        var raw = $( '[name="concerns_json"]' ).val() || '';
+        if ( raw ) {
+            try {
+                var ids = Object.keys( JSON.parse( raw ) );
+                sessionStorage.setItem( 'atb_pending_concerns', JSON.stringify( ids ) );
+            } catch ( e ) {}
+        }
+
+        /* Try to grab the first name from the WPForms name field. */
+        var fname = $( this )
+            .find( '.wpforms-field-name-first input, input[autocomplete="given-name"]' )
+            .first().val() || '';
+        sessionStorage.setItem( 'atb_pending_username', ( fname.trim().split( ' ' )[0] ) || '' );
+    } );
+
+    /* 2. After WPForms AJAX succeeds: redirect to results page. */
+    $( document ).on( 'wpformsAjaxRequestSuccess', function ( e, res, $form ) {
+        /* Only redirect on a clean form submission — ignore validation errors. */
+        if ( ! res || ! res.success ) return;
+        if ( res.data && ( res.data.errors || res.data.is_error ) ) return;
+
+        var concerns = [];
+        try { concerns = JSON.parse( sessionStorage.getItem( 'atb_pending_concerns' ) || '[]' ); } catch ( ex ) {}
+        var username = sessionStorage.getItem( 'atb_pending_username' ) || 'You';
+        sessionStorage.removeItem( 'atb_pending_concerns' );
+        sessionStorage.removeItem( 'atb_pending_username' );
+
+        if ( ! concerns.length ) return;
+
+        var sep = atbFormData.resultsUrl.indexOf( '?' ) !== -1 ? '&' : '?';
+        var url = atbFormData.resultsUrl + sep
+            + 'concerns=' + encodeURIComponent( JSON.stringify( concerns ) )
+            + '&username=' + encodeURIComponent( username );
+
+        /* Small delay lets WPForms finish its own DOM updates before we leave. */
+        setTimeout( function () { window.location.href = url; }, 300 );
+    } );
+} );
+JSCODE
+        );
+    }
 } );
 
 /* ===============================================================
