@@ -1486,13 +1486,14 @@ add_action( 'wp_enqueue_scripts', function () {
             background: transparent !important;
             border: none !important; box-shadow: none !important;
         }
-        /* Navbar: fixed at top */
-        body.atb-results-page .llvc-navbar {
-            position: fixed !important;
-            top: var(--wp-admin--admin-bar--height, 0px) !important;
-            left: 0 !important; right: 0 !important;
-            z-index: 9999 !important;
+        /* Navbar: full-width + z-index. Override Astra block-layout max-width rule
+           (.entry-content[data-ast-blocks-layout] > * { max-width: site-width }) */
+        body.atb-results-page .llvc-navbar,
+        body.atb-results-page .entry-content > .llvc-navbar,
+        body.atb-results-page .entry-content > .llvc--results {
+            max-width: none !important;
             width: 100% !important;
+            z-index: 9999 !important;
         }
         /* Heading overrides — beat Astra H1/H2/H3 rules */
         body.atb-results-page .llvc__heading--xs {
@@ -1701,13 +1702,8 @@ function atb_render_results_page() {
         array_map( fn( $cid ) => $concern_area_map[ $cid ] ?? '', $concern_ids )
     ) ) );
 
-    // Logo
-    $logo_url = '';
-    $logo_id  = get_theme_mod( 'custom_logo' );
-    if ( $logo_id ) {
-        $img_data = wp_get_attachment_image_src( $logo_id, 'full' );
-        if ( $img_data ) $logo_url = $img_data[0];
-    }
+    // Logo — same lookup as the main builder template
+    $logo_src = atb_get_logo_url();
 
     ob_start();
     ?>
@@ -1716,11 +1712,7 @@ function atb_render_results_page() {
         <div class="llvc-navbar__flex">
             <div class="llvc-navbar__spacer-col"></div>
             <a class="llvc-navbar__logo-link" href="<?php echo esc_url( home_url( '/' ) ); ?>">
-                <?php if ( $logo_url ) : ?>
-                <img class="llvc-navbar__logo" src="<?php echo esc_url( $logo_url ); ?>" alt="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
-                <?php else : ?>
-                <span class="llvc-navbar__site-name"><?php echo esc_html( get_bloginfo( 'name' ) ); ?></span>
-                <?php endif; ?>
+                <img class="llvc-navbar__logo" src="<?php echo esc_url( $logo_src ); ?>" alt="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
             </a>
             <div class="llvc-navbar__exit-col">
                 <a class="llvc-navbar__exit" href="javascript:history.back()">
@@ -1829,59 +1821,6 @@ function atb_render_results_page() {
     </div>
 
     <style>
-    /* ── Results: Navbar ──────────────────────────────────────── */
-    body.atb-results-page .llvc-navbar {
-        position: fixed;
-        top: var(--wp-admin--admin-bar--height, 0px);
-        left: 0; right: 0;
-        z-index: 9999;
-        background-color: var(--llvcNavbarBackground, #0d211d);
-        color: var(--llvcNavbarLink, #f7f4ef);
-        padding: 12px 0;
-        display: flex;
-        align-items: center;
-    }
-    body.atb-results-page .llvc-navbar__flex {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        max-width: 1270px;
-        margin: 0 auto;
-        padding: 0 50px;
-    }
-    body.atb-results-page .llvc-navbar__spacer-col {
-        width: 55px;
-    }
-    body.atb-results-page .llvc-navbar__exit-col {
-        width: 55px;
-        text-align: right;
-    }
-    body.atb-results-page .llvc-navbar__logo-link {
-        display: block;
-        line-height: 0;
-    }
-    body.atb-results-page .llvc-navbar__logo {
-        height: 34px;
-        width: auto;
-    }
-    body.atb-results-page .llvc-navbar__site-name {
-        color: var(--llvcNavbarLink, #f7f4ef);
-        font-size: 18px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-    }
-    body.atb-results-page .llvc-navbar__exit {
-        color: var(--llvcNavbarLink, #f7f4ef);
-        text-decoration: none;
-        font-size: 14px;
-        display: inline-flex;
-        align-items: center;
-    }
-    body.atb-results-page .llvc-navbar__exit:hover {
-        color: var(--llvcNavbarLinkHover, #c97e4a);
-    }
-
     /* ── Results: Page wrapper ────────────────────────────────── */
     .llvc--results {
         background-color: var(--llvcBaseBackground, #f1eadb);
