@@ -423,22 +423,43 @@ $logo_src   = atb_get_logo_url(); // plugin setting → theme custom_logo → bu
           <p><?php echo esc_html( atb_text( 'form_privacy' ) ); ?></p>
         </div>
 
-        <?php if ( atb_gf_active() ) :
-            $atb_form_id = atb_get_form_id();
-            if ( $atb_form_id > 0 ) :
-                // Display GF form: ( id, display_title, display_description, display_inactive, field_values, ajax, tabindex, echo )
-                gravity_form( $atb_form_id, false, false, false, null, true, 1, true );
-            else : ?>
-                <p class="atb-notice atb-notice--warning">
-                    No Gravity Form is configured for the Treatment Builder.<br>
-                    Set the <code>atb_gravity_form_id</code> WordPress option to your form&apos;s ID.
-                </p>
-            <?php endif; else : ?>
-                <p class="atb-notice atb-notice--error">
-                    <strong>Gravity Forms is required</strong> to use the Treatment Builder.<br>
-                    Please install and activate <a href="https://www.gravityforms.com/" target="_blank">Gravity Forms</a>.
-                </p>
-        <?php endif; ?>
+        <?php
+        $atb_form_plugin = atb_form_plugin();
+        if ( 'wpforms' === $atb_form_plugin ) :
+            if ( atb_wpf_active() ) :
+                $atb_wpf_id = atb_get_wpf_form_id();
+                if ( $atb_wpf_id > 0 ) :
+                    wpforms_display( $atb_wpf_id, false, false );
+                else : ?>
+                    <p class="atb-notice atb-notice--warning">
+                        No WPForms form is configured for the Treatment Builder.<br>
+                        Go to <strong>Settings &rarr; Treatment Builder &rarr; General</strong> and select a form.
+                    </p>
+                <?php endif; else : ?>
+                    <p class="atb-notice atb-notice--error">
+                        <strong>WPForms is required</strong> to use the Treatment Builder.<br>
+                        Please install and activate <a href="https://wpforms.com/" target="_blank">WPForms</a>.
+                    </p>
+            <?php endif;
+        else : // gravity_forms (default)
+            if ( atb_gf_active() ) :
+                $atb_form_id = atb_get_form_id();
+                if ( $atb_form_id > 0 ) :
+                    // Display GF form: ( id, display_title, display_description, display_inactive, field_values, ajax, tabindex, echo )
+                    gravity_form( $atb_form_id, false, false, false, null, true, 1, true );
+                else : ?>
+                    <p class="atb-notice atb-notice--warning">
+                        No Gravity Form is configured for the Treatment Builder.<br>
+                        Go to <strong>Settings &rarr; Treatment Builder &rarr; General</strong> and select a form.
+                    </p>
+                <?php endif; else : ?>
+                    <p class="atb-notice atb-notice--error">
+                        <strong>Gravity Forms is required</strong> but is not active.<br>
+                        Switch to WPForms in <strong>Settings &rarr; Treatment Builder &rarr; General</strong>,
+                        or install <a href="https://www.gravityforms.com/" target="_blank">Gravity Forms</a>.
+                    </p>
+            <?php endif;
+        endif; ?>
 
       </div><!-- /form-content -->
     </div><!-- /container -->

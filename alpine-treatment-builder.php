@@ -132,9 +132,24 @@ function atb_gf_active() {
     return class_exists( 'GFForms' );
 }
 
+/** Which form plugin is selected: 'gravity_forms' | 'wpforms'. */
+function atb_form_plugin() {
+    return get_option( 'atb_form_plugin', 'gravity_forms' );
+}
+
+/** Is WPForms active? */
+function atb_wpf_active() {
+    return defined( 'WPFORMS_VERSION' ) || class_exists( 'WPForms\WPForms' );
+}
+
 /** Gravity Form ID for the treatment builder. */
 function atb_get_form_id() {
     return (int) apply_filters( 'atb_gravity_form_id', get_option( 'atb_gravity_form_id', 0 ) );
+}
+
+/** WPForms form ID for the treatment builder. */
+function atb_get_wpf_form_id() {
+    return (int) get_option( 'atb_wpf_form_id', 0 );
 }
 
 /** Logo URL — plugin setting → theme custom_logo → bundled fallback. */
@@ -475,11 +490,15 @@ function atb_get_hotspots() {
  * ============================================================= */
 
 add_action( 'admin_notices', function () {
-    if ( ! atb_gf_active() ) {
+    $plugin = atb_form_plugin();
+    if ( 'gravity_forms' === $plugin && ! atb_gf_active() ) {
         echo '<div class="notice notice-error"><p>'
-            . '<strong>Alpine Treatment Builder</strong> requires '
-            . '<a href="https://www.gravityforms.com/" target="_blank">Gravity Forms</a> '
-            . 'to be installed and activated.</p></div>';
+            . '<strong>Alpine Treatment Builder</strong> is set to use Gravity Forms, but it is not active. '
+            . '<a href="' . esc_url( admin_url( 'options-general.php?page=alpine-treatment-builder' ) ) . '">Switch to WPForms</a> or install Gravity Forms.</p></div>';
+    } elseif ( 'wpforms' === $plugin && ! atb_wpf_active() ) {
+        echo '<div class="notice notice-error"><p>'
+            . '<strong>Alpine Treatment Builder</strong> is set to use WPForms, but it is not active. '
+            . '<a href="' . esc_url( admin_url( 'options-general.php?page=alpine-treatment-builder' ) ) . '">Switch to Gravity Forms</a> or install WPForms.</p></div>';
     }
 } );
 
@@ -501,10 +520,12 @@ add_action( 'admin_init', function () {
     $d = atb_defaults();
 
     // ── General ─────────────────────────────────────────────────────────────
-    register_setting( 'atb_settings_general', 'atb_gravity_form_id',  [ 'sanitize_callback' => 'absint',           'default' => 0 ] );
-    register_setting( 'atb_settings_general', 'atb_logo_url',         [ 'sanitize_callback' => 'esc_url_raw',      'default' => '' ] );
-    register_setting( 'atb_settings_general', 'atb_use_theme_chrome', [ 'sanitize_callback' => fn($v) => $v ? '1' : '0', 'default' => '0' ] );
-    register_setting( 'atb_settings_general', 'atb_results_page_id',  [ 'sanitize_callback' => 'absint',           'default' => 0 ] );
+    register_setting( 'atb_settings_general', 'atb_form_plugin',      [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'gravity_forms' ] );
+    register_setting( 'atb_settings_general', 'atb_gravity_form_id', [ 'sanitize_callback' => 'absint',           'default' => 0 ] );
+    register_setting( 'atb_settings_general', 'atb_wpf_form_id',     [ 'sanitize_callback' => 'absint',           'default' => 0 ] );
+    register_setting( 'atb_settings_general', 'atb_logo_url',        [ 'sanitize_callback' => 'esc_url_raw',      'default' => '' ] );
+    register_setting( 'atb_settings_general', 'atb_use_theme_chrome',[ 'sanitize_callback' => fn($v) => $v ? '1' : '0', 'default' => '0' ] );
+    register_setting( 'atb_settings_general', 'atb_results_page_id', [ 'sanitize_callback' => 'absint',           'default' => 0 ] );
 
     // ── Branding ─────────────────────────────────────────────────────────────
     foreach ( $d['colors'] as $key => $info ) {
@@ -534,11 +555,14 @@ function atb_render_settings_page() {
     $base = admin_url( 'options-general.php?page=alpine-treatment-builder' );
 
     $d              = atb_defaults();
+    $current_plugin = atb_form_plugin();
     $form_id        = atb_get_form_id();
+    $wpf_form_id    = atb_get_wpf_form_id();
     $logo_url       = get_option( 'atb_logo_url', '' );
     $use_chrome     = get_option( 'atb_use_theme_chrome', '0' );
     $current_font   = atb_font();
     $gf_forms       = atb_gf_active() ? GFAPI::get_forms() : [];
+    $wpf_forms      = atb_wpf_active() ? get_posts( [ 'post_type' => 'wpforms', 'post_status' => 'publish', 'numberposts' => -1, 'orderby' => 'title', 'order' => 'ASC' ] ) : [];
     ?>
     <div class="wrap">
     <h1><?php esc_html_e( 'Treatment Builder Settings', 'alpine-tb' ); ?></h1>
@@ -594,14 +618,30 @@ function atb_render_settings_page() {
     <form method="post" action="options.php">
         <?php settings_fields( 'atb_settings_general' ); ?>
 
-        <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Gravity Forms', 'alpine-tb' ); ?></h2>
-        <p class="atb-section-intro"><?php esc_html_e( 'Select the form that collects patient contact info. Add a Hidden field to it with CSS Class "atb-concerns" — the plugin populates it automatically with the body-map selections.', 'alpine-tb' ); ?></p>
+        <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Contact Form', 'alpine-tb' ); ?></h2>
+        <p class="atb-section-intro"><?php esc_html_e( 'Choose your form plugin, then select the form that collects patient contact info. Add a Hidden field to the form with CSS Class "atb-concerns" — the plugin populates it automatically with the body-map selections.', 'alpine-tb' ); ?></p>
         <table class="form-table" role="presentation">
             <tr>
-                <th><label for="atb_gravity_form_id"><?php esc_html_e( 'Contact Form', 'alpine-tb' ); ?></label></th>
+                <th><?php esc_html_e( 'Form Plugin', 'alpine-tb' ); ?></th>
+                <td>
+                    <label style="margin-right:20px;">
+                        <input type="radio" name="atb_form_plugin" value="gravity_forms" <?php checked( $current_plugin, 'gravity_forms' ); ?>>
+                        <?php esc_html_e( 'Gravity Forms', 'alpine-tb' ); ?>
+                        <?php if ( ! atb_gf_active() ) : ?><span style="color:#d63638;font-size:12px;"> (not active)</span><?php endif; ?>
+                    </label>
+                    <label>
+                        <input type="radio" name="atb_form_plugin" value="wpforms" <?php checked( $current_plugin, 'wpforms' ); ?>>
+                        <?php esc_html_e( 'WPForms', 'alpine-tb' ); ?>
+                        <?php if ( ! atb_wpf_active() ) : ?><span style="color:#d63638;font-size:12px;"> (not active)</span><?php endif; ?>
+                    </label>
+                </td>
+            </tr>
+            <tr id="atb-gf-row" <?php echo 'gravity_forms' !== $current_plugin ? 'style="display:none"' : ''; ?>>
+                <th><label for="atb_gravity_form_id"><?php esc_html_e( 'Gravity Form', 'alpine-tb' ); ?></label></th>
                 <td>
                     <?php if ( ! atb_gf_active() ) : ?>
                         <p class="description" style="color:#d63638;"><?php esc_html_e( 'Gravity Forms is not active.', 'alpine-tb' ); ?></p>
+                        <input type="hidden" name="atb_gravity_form_id" value="<?php echo absint( $form_id ); ?>">
                     <?php elseif ( empty( $gf_forms ) ) : ?>
                         <p class="description" style="color:#d63638;"><?php esc_html_e( 'No forms found. Create a form in Gravity Forms first.', 'alpine-tb' ); ?></p>
                         <input type="hidden" name="atb_gravity_form_id" value="0">
@@ -616,6 +656,30 @@ function atb_render_settings_page() {
                         </select>
                         <?php if ( $form_id > 0 ) : ?>
                             <p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=gf_edit_forms&id=' . $form_id ) ); ?>" target="_blank"><?php esc_html_e( 'Edit this form in Gravity Forms →', 'alpine-tb' ); ?></a></p>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <tr id="atb-wpf-row" <?php echo 'wpforms' !== $current_plugin ? 'style="display:none"' : ''; ?>>
+                <th><label for="atb_wpf_form_id"><?php esc_html_e( 'WPForms Form', 'alpine-tb' ); ?></label></th>
+                <td>
+                    <?php if ( ! atb_wpf_active() ) : ?>
+                        <p class="description" style="color:#d63638;"><?php esc_html_e( 'WPForms is not active.', 'alpine-tb' ); ?></p>
+                        <input type="hidden" name="atb_wpf_form_id" value="<?php echo absint( $wpf_form_id ); ?>">
+                    <?php elseif ( empty( $wpf_forms ) ) : ?>
+                        <p class="description" style="color:#d63638;"><?php esc_html_e( 'No WPForms forms found. Create a form in WPForms first.', 'alpine-tb' ); ?></p>
+                        <input type="hidden" name="atb_wpf_form_id" value="0">
+                    <?php else : ?>
+                        <select name="atb_wpf_form_id" id="atb_wpf_form_id">
+                            <option value="0"><?php esc_html_e( '— Select a form —', 'alpine-tb' ); ?></option>
+                            <?php foreach ( $wpf_forms as $wpf ) : ?>
+                                <option value="<?php echo absint( $wpf->ID ); ?>" <?php selected( $wpf_form_id, (int) $wpf->ID ); ?>>
+                                    <?php echo esc_html( $wpf->post_title ); ?> (ID: <?php echo absint( $wpf->ID ); ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if ( $wpf_form_id > 0 ) : ?>
+                            <p class="description"><a href="<?php echo esc_url( admin_url( 'admin.php?page=wpforms-builder&view=fields&form_id=' . $wpf_form_id ) ); ?>" target="_blank"><?php esc_html_e( 'Edit this form in WPForms →', 'alpine-tb' ); ?></a></p>
                         <?php endif; ?>
                     <?php endif; ?>
                 </td>
@@ -838,6 +902,13 @@ function atb_render_settings_page() {
 
     <script>
     jQuery(function($){
+        /* ── Form plugin toggle ── */
+        $('input[name="atb_form_plugin"]').on('change', function(){
+            var val = $(this).val();
+            $('#atb-gf-row').toggle( val === 'gravity_forms' );
+            $('#atb-wpf-row').toggle( val === 'wpforms' );
+        });
+
         /* ── Color pickers ── */
         $('.atb-color-picker').each(function(){
             $(this).wpColorPicker({ defaultColor: $(this).data('default-color') });
@@ -1095,6 +1166,7 @@ add_action( 'save_post_atb_treatment', function ( $post_id ) {
  * ============================================================= */
 
 add_filter( 'gform_notification', function ( $notification, $form, $entry ) {
+    if ( 'gravity_forms' !== atb_form_plugin() ) return $notification;
     if ( (int) $form['id'] !== atb_get_form_id() ) return $notification;
 
     $concerns_value = '';
@@ -1117,6 +1189,7 @@ add_filter( 'gform_notification', function ( $notification, $form, $entry ) {
 }, 10, 3 );
 
 add_filter( 'gform_confirmation', function ( $confirmation, $form, $entry, $ajax ) {
+    if ( 'gravity_forms' !== atb_form_plugin() ) return $confirmation;
     if ( (int) $form['id'] !== atb_get_form_id() ) return $confirmation;
 
     $results_page_id = (int) get_option( 'atb_results_page_id', 0 );
@@ -1153,6 +1226,84 @@ add_filter( 'gform_confirmation', function ( $confirmation, $form, $entry, $ajax
 
     return [ 'redirect' => $results_url ];
 }, 10, 4 );
+
+/* ===============================================================
+ * WPFORMS: append concerns + redirect to results page
+ * ============================================================= */
+
+/**
+ * Helper: extract concern IDs and first name from WPForms fields array.
+ * Returns [ 'concern_ids' => [], 'first_name' => '' ]
+ */
+function atb_extract_wpf_data( array $fields ) {
+    $concern_ids = [];
+    $first_name  = '';
+
+    foreach ( $fields as $field ) {
+        $type  = $field['type']  ?? '';
+        $name  = $field['name']  ?? $field['label'] ?? '';
+        $value = $field['value'] ?? '';
+
+        // Concerns hidden field — identified by its label containing "concern"
+        if ( stripos( $name, 'concern' ) !== false && $value ) {
+            $decoded = json_decode( $value, true );
+            if ( is_array( $decoded ) ) {
+                $concern_ids = array_keys( $decoded );
+                continue;
+            }
+        }
+
+        // First name field
+        if ( ! $first_name && in_array( $type, [ 'name', 'text' ], true ) && stripos( $name, 'name' ) !== false ) {
+            $val = trim( $field['first'] ?? $value );
+            if ( $val ) $first_name = explode( ' ', $val )[0];
+        }
+    }
+
+    return compact( 'concern_ids', 'first_name' );
+}
+
+// Append concerns to WPForms email notification
+add_action( 'wpforms_process_complete', function ( $fields, $entry, $form_data, $entry_id ) {
+    if ( 'wpforms' !== atb_form_plugin() ) return;
+    if ( (int) $form_data['id'] !== atb_get_wpf_form_id() ) return;
+
+    $extracted = atb_extract_wpf_data( $fields );
+    if ( empty( $extracted['concern_ids'] ) ) return;
+
+    // Store for the redirect filter below (same request, globals are fine)
+    $GLOBALS['atb_wpf_concern_ids'] = $extracted['concern_ids'];
+    $GLOBALS['atb_wpf_first_name']  = $extracted['first_name'];
+}, 10, 4 );
+
+// Override WPForms confirmation to redirect to results page
+add_action( 'wpforms_process_complete', function ( $fields, $entry, $form_data, $entry_id ) {
+    if ( 'wpforms' !== atb_form_plugin() ) return;
+    if ( (int) $form_data['id'] !== atb_get_wpf_form_id() ) return;
+
+    $results_page_id = (int) get_option( 'atb_results_page_id', 0 );
+    if ( ! $results_page_id ) return;
+
+    $concern_ids = $GLOBALS['atb_wpf_concern_ids'] ?? [];
+    $first_name  = $GLOBALS['atb_wpf_first_name']  ?? 'You';
+
+    $redirect_url = add_query_arg( [
+        'concerns' => rawurlencode( json_encode( $concern_ids ) ),
+        'username' => rawurlencode( $first_name ?: 'You' ),
+    ], get_permalink( $results_page_id ) );
+
+    if ( wp_doing_ajax() ) {
+        // WPForms reads this response format on the front end
+        wp_send_json_success( [
+            'confirmation_type' => 'redirect',
+            'redirect'          => esc_url_raw( $redirect_url ),
+        ] );
+        exit;
+    }
+
+    wp_redirect( esc_url_raw( $redirect_url ) );
+    exit;
+}, 20, 4 ); // priority 20 — runs after the data-extraction hook above
 
 /* ===============================================================
  * PAGE DETECTION + BODY CLASS
