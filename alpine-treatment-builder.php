@@ -1615,11 +1615,15 @@ jQuery( function ( $ ) {
         sessionStorage.setItem( 'atb_pending_username', ( fname.trim().split( ' ' )[0] ) || '' );
     } );
 
-    /* 2. After WPForms AJAX succeeds: redirect to results page. */
-    $( document ).on( 'wpformsAjaxRequestSuccess', function ( e, res, $form ) {
-        /* Only redirect on a clean form submission — ignore validation errors. */
-        if ( ! res || ! res.success ) return;
-        if ( res.data && ( res.data.errors || res.data.is_error ) ) return;
+    /* 2. After WPForms AJAX succeeds: redirect to results page.
+     *
+     * WPForms 1.8+ fires "wpformsAjaxSubmitSuccess" on the <form> element,
+     * which bubbles up to document. Older versions used "wpformsAjaxRequestSuccess".
+     * We listen for both to cover all installed versions. */
+    function atbHandleWpformsSuccess( e, res ) {
+        /* wpformsAjaxSubmitSuccess fires only on success (WPForms already checked),
+         * but wpformsAjaxRequestSuccess needs an extra guard. */
+        if ( res && ( ! res.success || ( res.data && ( res.data.errors || res.data.is_error ) ) ) ) return;
 
         var concerns = [];
         try { concerns = JSON.parse( sessionStorage.getItem( 'atb_pending_concerns' ) || '[]' ); } catch ( ex ) {}
@@ -1634,9 +1638,12 @@ jQuery( function ( $ ) {
             + 'concerns=' + encodeURIComponent( JSON.stringify( concerns ) )
             + '&username=' + encodeURIComponent( username );
 
-        /* Small delay lets WPForms finish its own DOM updates before we leave. */
+        /* Small delay lets WPForms finish its own DOM updates before we navigate. */
         setTimeout( function () { window.location.href = url; }, 300 );
-    } );
+    }
+
+    $( document ).on( 'wpformsAjaxSubmitSuccess',  atbHandleWpformsSuccess );
+    $( document ).on( 'wpformsAjaxRequestSuccess', atbHandleWpformsSuccess );
 } );
 JSCODE
         );
