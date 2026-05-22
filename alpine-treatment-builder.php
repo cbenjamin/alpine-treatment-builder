@@ -1102,11 +1102,19 @@ add_action( 'init', function () {
     ] );
 
     register_taxonomy( 'atb_treatment_cat', 'atb_treatment', [
-        'label'        => 'Categories',
-        'hierarchical' => false,
-        'show_ui'      => true,
-        'rewrite'      => false,
-        'show_in_menu' => true,
+        'label'              => 'Treatment Category',
+        'labels'             => [
+            'name'          => 'Treatment Categories',
+            'singular_name' => 'Treatment Category',
+            'add_new_item'  => 'Add New Category',
+            'new_item_name' => 'New Category Name',
+        ],
+        'hierarchical'       => false,
+        'show_ui'            => true,
+        'show_admin_column'  => true,  /* show category column in treatments list */
+        'rewrite'            => false,
+        'show_in_menu'       => true,
+        'show_in_rest'       => true,  /* block editor support */
     ] );
 } );
 
@@ -1596,16 +1604,51 @@ add_action( 'wp_enqueue_scripts', function () {
 jQuery( function ( $ ) {
     if ( ! window.atbFormData || ! atbFormData.resultsUrl ) return;
 
-    /* Concerns are saved to sessionStorage at the step 2→3 transition
-     * (in alpine-tb.js), so by the time WPForms AJAX completes the data
-     * is already there.  We also listen for the user typing their first
-     * name into the WPForms form and refresh the stored username. */
-    $( document ).on( 'input change', '.wpforms-form .wpforms-field-name-first input, .wpforms-form input[autocomplete="given-name"]', function () {
-        var fname = $( this ).val().trim().split( ' ' )[0] || '';
-        try { sessionStorage.setItem( 'atb_pending_username', fname ); } catch ( ex ) {}
+    /* Helper: find the "first name" value in the WPForms form.
+     * Works with WPForms' native Name field (wpforms-field-name-first)
+     * AND with plain text fields whose label contains "first name" or "first". */
+    function atbGetFirstName() {
+        /* Native WPForms split-name first-name sub-field */
+        var $native = $( '.wpforms-form .wpforms-field-name-first input' );
+        if ( $native.length && $native.val().trim() ) return $native.val().trim().split( ' ' )[0];
+
+        /* autocomplete hint */
+        var $auto = $( '.wpforms-form input[autocomplete="given-name"]' );
+        if ( $auto.length && $auto.val().trim() ) return $auto.val().trim().split( ' ' )[0];
+
+        /* Plain text field whose label contains "first name" */
+        var fname = '';
+        $( '.wpforms-form .wpforms-field' ).each( function () {
+            var label = $( this ).find( 'label' ).first().text().trim().toLowerCase();
+            if ( label.indexOf( 'first' ) !== -1 ) {
+                var val = $( this ).find( 'input[type="text"]' ).first().val().trim();
+                if ( val ) { fname = val.split( ' ' )[0]; return false; }
+            }
+        } );
+        if ( fname ) return fname;
+
+        /* Fallback: first text input in the form */
+        var $first = $( '.wpforms-form input[type="text"]' ).first();
+        return $first.length ? ( $first.val().trim().split( ' ' )[0] || '' ) : '';
+    }
+
+    /* Keep sessionStorage username fresh as the user types. */
+    $( document ).on( 'input change', '.wpforms-form input[type="text"]', function () {
+        var $field = $( this ).closest( '.wpforms-field' );
+        var label  = $field.find( 'label' ).first().text().trim().toLowerCase();
+        /* Update whenever the label mentions "first" or this is the first text input */
+        var isFirst = label.indexOf( 'first' ) !== -1
+            || $( '.wpforms-form input[type="text"]' ).first().is( this );
+        if ( isFirst ) {
+            var fname = $( this ).val().trim().split( ' ' )[0] || '';
+            try { sessionStorage.setItem( 'atb_pending_username', fname ); } catch ( ex ) {}
+        }
     } );
 
     /* After WPForms AJAX succeeds: redirect to results page.
+     *
+     * wpformsAjaxSubmitSuccess fires BEFORE WPForms replaces the form with
+     * its confirmation message, so we can still read field values from the DOM.
      *
      * WPForms 1.8+ fires "wpformsAjaxSubmitSuccess" on the <form> element,
      * which bubbles up to document. Older versions used "wpformsAjaxRequestSuccess".
@@ -1617,7 +1660,13 @@ jQuery( function ( $ ) {
 
         var concerns = [];
         try { concerns = JSON.parse( sessionStorage.getItem( 'atb_pending_concerns' ) || '[]' ); } catch ( ex ) {}
-        var username = sessionStorage.getItem( 'atb_pending_username' ) || 'You';
+
+        /* Read the first name directly from the form DOM (still available at
+         * this moment), fall back to whatever we stored during typing. */
+        var username = atbGetFirstName()
+            || sessionStorage.getItem( 'atb_pending_username' )
+            || 'You';
+
         sessionStorage.removeItem( 'atb_pending_concerns' );
         sessionStorage.removeItem( 'atb_pending_username' );
 
