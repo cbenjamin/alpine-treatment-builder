@@ -1322,6 +1322,20 @@ add_action( 'wp_enqueue_scripts', function () {
             vertical-align: -10%; overflow: hidden;
         }
 
+        /* ---- Navbar: constrain inner content to max 1270px ---- */
+        /* Applies to both builder (.container child) and results (.llvc-navbar__flex child) */
+        .llvc-navbar > .container,
+        .llvc-navbar > .container > .llvc-navbar__flex,
+        .llvc-navbar > .llvc-navbar__flex {
+            max-width: 1270px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            padding-left: 50px !important;
+            padding-right: 50px !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+        }
+
         /* ---- Global button reset (Astra overrides) ---- */
         .llvc button, .llvc-navbar button {
             padding: 0 !important; margin: 0 !important;
@@ -1378,6 +1392,14 @@ add_action( 'wp_enqueue_scripts', function () {
         /* ---- Body nav: remove Astra bullets ---- */
         .llvc--concerns .llvc__body__nav {
             list-style: none !important; padding-left: 0 !important; margin-left: 0 !important;
+        }
+
+        /* ---- Selections (chosen concerns) list: hide bullets ---- */
+        .llvc__chosen-concern-list,
+        .llvc__chosen-concern-list li {
+            list-style: none !important;
+            padding-left: 0 !important;
+            margin-left: 0 !important;
         }
 
         /* ---- How to Use + Gender switch: fix font size ---- */
@@ -1574,6 +1596,24 @@ add_action( 'wp_enqueue_scripts', function () {
         body.atb-page--with-chrome h1.entry-title,
         body.atb-page--with-chrome .page-title,
         body.atb-page--with-chrome .site-main > .page-header { display: none !important; }
+
+        /* ---- Navbar container: responsive padding ---- */
+        @media (max-width: 768px) {
+            .llvc-navbar > .container,
+            .llvc-navbar > .container > .llvc-navbar__flex,
+            .llvc-navbar > .llvc-navbar__flex {
+                padding-left: 24px !important;
+                padding-right: 24px !important;
+            }
+        }
+        @media (max-width: 600px) {
+            .llvc-navbar > .container,
+            .llvc-navbar > .container > .llvc-navbar__flex,
+            .llvc-navbar > .llvc-navbar__flex {
+                padding-left: 20px !important;
+                padding-right: 20px !important;
+            }
+        }
     ';
 
     wp_add_inline_style( 'atb-styles', $inline_css );
@@ -1923,6 +1963,12 @@ function atb_render_results_page() {
         var closeBtn= document.getElementById( 'llvc-drawer-close' );
         var _lastFocus = null;
 
+        /* Move overlay & drawer to <body> so they escape any parent stacking
+           context (e.g. the theme's #page div with position:relative) and can
+           sit above the fixed navbar / WP admin bar. */
+        document.body.appendChild( overlay );
+        document.body.appendChild( drawer );
+
         function openDrawer( data ) {
             document.getElementById( 'llvc-drawer-header-title' ).textContent = data.title || '';
             document.getElementById( 'llvc-drawer-title' ).textContent        = data.title || '';
@@ -2004,6 +2050,16 @@ function atb_render_results_page() {
         margin: 0 auto;
         padding: 0 50px;
         box-sizing: border-box;
+    }
+
+    /* ── Results: Navbar inner container ─────────────────────── */
+    body.atb-results-page .llvc-navbar__flex {
+        max-width: 1270px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0 50px;
+        box-sizing: border-box;
+        width: 100%;
     }
 
     /* ── Results: Intro ───────────────────────────────────────── */
@@ -2167,20 +2223,28 @@ function atb_render_results_page() {
         padding-top: 16px;
     }
     .llvc__procedure-card__learn-more-button {
-        font-size: 14px;
-        color: var(--llvcBodyText, #21403e);
-        text-decoration: underline;
-        text-underline-offset: 2px;
-        background: none;
-        border: none;
-        padding: 0;
-        cursor: pointer;
-        text-decoration-color: currentColor;
+        font-size: 14px !important;
+        color: var(--llvcBodyText, #21403e) !important;
+        text-decoration: underline !important;
+        text-underline-offset: 2px !important;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        cursor: pointer !important;
+        text-decoration-color: currentColor !important;
+        border-radius: 0 !important;
+        transition: none !important;
     }
-    .llvc__procedure-card__learn-more-button:hover {
-        color: var(--llvcPrimary, #a3663c);
+    .llvc__procedure-card__learn-more-button:hover,
+    .llvc__procedure-card__learn-more-button:focus,
+    .llvc__procedure-card__learn-more-button:active {
+        color: var(--llvcBodyText, #21403e) !important;
+        background: none !important;
+        box-shadow: none !important;
+        border: none !important;
+        text-decoration: underline !important;
     }
-
     /* ── Results: Empty state ─────────────────────────────────── */
     .llvc__results-empty {
         text-align: center;
@@ -2200,8 +2264,12 @@ function atb_render_results_page() {
         .llvc__results-concern__procedures-cards { margin: 0 -8px; }
         .llvc__procedure-card__wrapper { padding: 0 8px; margin-bottom: 16px; }
     }
+    @media (max-width: 768px) {
+        .llvc--results .llvc__container,
+        body.atb-results-page .llvc-navbar__flex { padding: 0 24px; }
+    }
     @media (max-width: 600px) {
-        .llvc--results .llvc__container { padding: 0 20px; }
+        .llvc--results .llvc__container,
         body.atb-results-page .llvc-navbar__flex { padding: 0 20px; }
         .llvc__heading--xl { font-size: 24px; }
         .llvc__results__intro-wrapper { margin-bottom: 48px; }
@@ -2219,7 +2287,7 @@ function atb_render_results_page() {
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.45);
-        z-index: 10000;
+        z-index: 999990;
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.3s ease;
@@ -2232,14 +2300,14 @@ function atb_render_results_page() {
     /* ── Drawer: panel ────────────────────────────────────────── */
     .llvc-drawer {
         position: fixed;
-        top: 0;
+        top: var(--wp-admin--admin-bar--height, 0px);
         right: 0;
         bottom: 0;
         width: 62%;
         max-width: 900px;
         min-width: 320px;
         background: #fff;
-        z-index: 10001;
+        z-index: 999991;
         display: flex;
         flex-direction: column;
         transform: translateX(100%);
@@ -2267,22 +2335,24 @@ function atb_render_results_page() {
         background: #fff;
     }
     .llvc-drawer__back {
-        display: inline-flex;
-        align-items: center;
+        display: inline-flex !important;
+        align-items: center !important;
         background: none !important;
         border: none !important;
         box-shadow: none !important;
         padding: 0 !important;
         min-width: 0 !important;
         min-height: 0 !important;
-        font-size: 14px;
-        color: var(--llvcBodyText, #21403e);
-        cursor: pointer;
-        font-weight: 500;
-        white-space: nowrap;
+        font-size: 14px !important;
+        color: var(--llvcBodyText, #21403e) !important;
+        cursor: pointer !important;
+        font-weight: 500 !important;
+        white-space: nowrap !important;
+        border-radius: 0 !important;
+        transition: none !important;
     }
     .llvc-drawer__back:hover {
-        color: var(--llvcPrimary, #a3663c);
+        color: var(--llvcPrimary, #a3663c) !important;
     }
     .llvc-drawer__header-title {
         font-size: 15px;
