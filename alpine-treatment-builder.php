@@ -1833,6 +1833,25 @@ function atb_render_results_page() {
                                 $cats     = get_the_terms( $treatment->ID, 'atb_treatment_cat' );
                                 $cat_name = ( ! is_wp_error( $cats ) && ! empty( $cats ) ) ? $cats[0]->name : '';
                                 $desc     = $teaser ?: wp_trim_words( wp_strip_all_tags( $treatment->post_content ), 50 );
+
+                                // Build full list of concern labels for the drawer
+                                $t_all_concern_ids = get_post_meta( $treatment->ID, '_atb_concern' );
+                                $t_concern_labels  = [];
+                                foreach ( $t_all_concern_ids as $acid ) {
+                                    $lbl = $concern_label_map[ $acid ] ?? null;
+                                    if ( $lbl && ! in_array( $lbl, $t_concern_labels, true ) ) {
+                                        $t_concern_labels[] = $lbl;
+                                    }
+                                }
+                                sort( $t_concern_labels );
+
+                                $drawer_data = wp_json_encode( [
+                                    'title'       => $treatment->post_title,
+                                    'description' => wp_strip_all_tags( $treatment->post_content ) ?: $desc,
+                                    'concern'     => $concern_label_map[ $cid ] ?? $cid,
+                                    'allConcerns' => $t_concern_labels,
+                                    'url'         => $url ?: '',
+                                ] );
                             ?>
                             <div class="llvc__procedure-card__wrapper">
                                 <div class="llvc__procedure-card">
@@ -1846,11 +1865,12 @@ function atb_render_results_page() {
                                             <p><?php echo esc_html( $desc ); ?></p>
                                             <?php endif; ?>
                                         </div>
-                                        <?php if ( $url ) : ?>
                                         <div class="llvc__procedure-card__learn-more">
-                                            <a href="<?php echo esc_url( $url ); ?>" class="llvc__procedure-card__learn-more-button">Learn More</a>
+                                            <button class="llvc__procedure-card__learn-more-button"
+                                                    data-atb-drawer="<?php echo esc_attr( $drawer_data ); ?>">
+                                                Learn More
+                                            </button>
                                         </div>
-                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -1865,6 +1885,108 @@ function atb_render_results_page() {
             <?php endif; ?>
         </div>
     </div>
+
+    <!-- ── Treatment Drawer ─────────────────────────────────────── -->
+    <div class="llvc-drawer__overlay" id="llvc-drawer-overlay" aria-hidden="true"></div>
+    <aside class="llvc-drawer" id="llvc-drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="llvc-drawer-header-title">
+        <div class="llvc-drawer__header">
+            <button class="llvc-drawer__back" id="llvc-drawer-close" aria-label="Close">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-2px"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+                Back
+            </button>
+            <span class="llvc-drawer__header-title" id="llvc-drawer-header-title"></span>
+            <span class="llvc-drawer__header-spacer"></span>
+        </div>
+        <div class="llvc-drawer__body">
+            <div class="llvc-drawer__card">
+                <h2 class="llvc-drawer__title" id="llvc-drawer-title"></h2>
+                <p class="llvc-drawer__description" id="llvc-drawer-description"></p>
+                <p class="llvc-drawer__recommended">
+                    Recommended based on your unique concern:
+                    <strong class="llvc-drawer__primary-concern" id="llvc-drawer-concern"></strong>
+                </p>
+                <div class="llvc-drawer__also" id="llvc-drawer-also">
+                    <h3 class="llvc-drawer__also-heading">In Addition it Treats</h3>
+                    <ul class="llvc-drawer__also-list" id="llvc-drawer-also-list"></ul>
+                </div>
+                <div class="llvc-drawer__cta" id="llvc-drawer-cta" style="display:none">
+                    <a class="llvc-drawer__cta-btn" id="llvc-drawer-cta-btn" href="#" target="_blank" rel="noopener">Learn More</a>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <script>
+    (function () {
+        var drawer  = document.getElementById( 'llvc-drawer' );
+        var overlay = document.getElementById( 'llvc-drawer-overlay' );
+        var closeBtn= document.getElementById( 'llvc-drawer-close' );
+        var _lastFocus = null;
+
+        function openDrawer( data ) {
+            document.getElementById( 'llvc-drawer-header-title' ).textContent = data.title || '';
+            document.getElementById( 'llvc-drawer-title' ).textContent        = data.title || '';
+            document.getElementById( 'llvc-drawer-description' ).textContent  = data.description || '';
+            document.getElementById( 'llvc-drawer-concern' ).textContent      = data.concern || '';
+
+            var list = document.getElementById( 'llvc-drawer-also-list' );
+            list.innerHTML = '';
+            var concerns = data.allConcerns || [];
+            var also = document.getElementById( 'llvc-drawer-also' );
+            if ( concerns.length ) {
+                concerns.forEach( function ( c ) {
+                    var li = document.createElement( 'li' );
+                    li.className = 'llvc-drawer__also-item';
+                    li.textContent = c;
+                    list.appendChild( li );
+                } );
+                also.style.display = '';
+            } else {
+                also.style.display = 'none';
+            }
+
+            var cta    = document.getElementById( 'llvc-drawer-cta' );
+            var ctaBtn = document.getElementById( 'llvc-drawer-cta-btn' );
+            if ( data.url ) {
+                ctaBtn.href = data.url;
+                cta.style.display = '';
+            } else {
+                cta.style.display = 'none';
+            }
+
+            _lastFocus = document.activeElement;
+            drawer.setAttribute(  'aria-hidden', 'false' );
+            overlay.setAttribute( 'aria-hidden', 'false' );
+            drawer.classList.add(  'is-open' );
+            overlay.classList.add( 'is-open' );
+            document.body.classList.add( 'llvc-drawer--open' );
+            closeBtn.focus();
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove(  'is-open' );
+            overlay.classList.remove( 'is-open' );
+            drawer.setAttribute(  'aria-hidden', 'true' );
+            overlay.setAttribute( 'aria-hidden', 'true' );
+            document.body.classList.remove( 'llvc-drawer--open' );
+            if ( _lastFocus ) { _lastFocus.focus(); _lastFocus = null; }
+        }
+
+        document.addEventListener( 'click', function ( e ) {
+            var btn = e.target.closest( '[data-atb-drawer]' );
+            if ( btn ) {
+                e.preventDefault();
+                try { openDrawer( JSON.parse( btn.getAttribute( 'data-atb-drawer' ) ) ); } catch ( err ) {}
+            }
+        } );
+
+        closeBtn.addEventListener( 'click', closeDrawer );
+        overlay.addEventListener(  'click', closeDrawer );
+        document.addEventListener( 'keydown', function ( e ) {
+            if ( e.key === 'Escape' && drawer.classList.contains( 'is-open' ) ) closeDrawer();
+        } );
+    })();
+    </script>
 
     <style>
     /* ── Results: Page wrapper ────────────────────────────────── */
@@ -2089,6 +2211,196 @@ function atb_render_results_page() {
     @media print {
         body.atb-results-page .llvc-navbar { position: static; }
         .llvc__results-print { display: none; }
+        .llvc-drawer, .llvc-drawer__overlay { display: none !important; }
+    }
+
+    /* ── Drawer: overlay ──────────────────────────────────────── */
+    .llvc-drawer__overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 10000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    .llvc-drawer__overlay.is-open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* ── Drawer: panel ────────────────────────────────────────── */
+    .llvc-drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 62%;
+        max-width: 900px;
+        min-width: 320px;
+        background: #fff;
+        z-index: 10001;
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: -4px 0 32px rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+    }
+    .llvc-drawer.is-open {
+        transform: translateX(0);
+    }
+    /* Prevent body scroll while drawer is open */
+    body.llvc-drawer--open {
+        overflow: hidden !important;
+    }
+
+    /* ── Drawer: header bar ───────────────────────────────────── */
+    .llvc-drawer__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        height: 56px;
+        border-bottom: 1px solid #e8e8e8;
+        flex-shrink: 0;
+        background: #fff;
+    }
+    .llvc-drawer__back {
+        display: inline-flex;
+        align-items: center;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        font-size: 14px;
+        color: var(--llvcBodyText, #21403e);
+        cursor: pointer;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    .llvc-drawer__back:hover {
+        color: var(--llvcPrimary, #a3663c);
+    }
+    .llvc-drawer__header-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--llvcHeader, #091714);
+        text-align: center;
+        flex: 1;
+        padding: 0 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .llvc-drawer__header-spacer {
+        /* Mirrors the "Back" button width to keep the title centered */
+        width: 64px;
+        flex-shrink: 0;
+    }
+
+    /* ── Drawer: scrollable body ──────────────────────────────── */
+    .llvc-drawer__body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 40px 40px 60px;
+        background: var(--llvcBaseBackground, #f1eadb);
+    }
+
+    /* ── Drawer: white card ───────────────────────────────────── */
+    .llvc-drawer__card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 40px;
+    }
+    .llvc-drawer__title {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--llvcHeader, #091714);
+        margin: 0 0 20px;
+        line-height: 1.2;
+    }
+    .llvc-drawer__description {
+        font-size: 16px;
+        color: var(--llvcBodyText, #21403e);
+        line-height: 1.7;
+        margin: 0 0 32px;
+    }
+    .llvc-drawer__recommended {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--llvcHeader, #091714);
+        margin: 0 0 32px;
+        padding-top: 28px;
+        border-top: 1px solid #e8e8e8;
+    }
+    .llvc-drawer__primary-concern {
+        color: var(--llvcPrimary, #a3663c);
+        font-weight: 700;
+    }
+
+    /* ── Drawer: also treats ──────────────────────────────────── */
+    .llvc-drawer__also {
+        padding-top: 28px;
+        border-top: 1px solid #e8e8e8;
+    }
+    .llvc-drawer__also-heading {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--llvcHeader, #091714);
+        margin: 0 0 20px;
+    }
+    .llvc-drawer__also-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0;
+    }
+    .llvc-drawer__also-item {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--llvcHeader, #091714);
+        padding: 14px 12px 14px 0;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    /* ── Drawer: CTA button ───────────────────────────────────── */
+    .llvc-drawer__cta {
+        padding-top: 32px;
+        margin-top: 28px;
+        border-top: 1px solid #e8e8e8;
+    }
+    .llvc-drawer__cta-btn {
+        display: inline-block;
+        background: var(--llvcHeader, #091714);
+        color: #fff !important;
+        text-decoration: none !important;
+        padding: 14px 32px;
+        border-radius: 100px;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        transition: background 0.2s;
+    }
+    .llvc-drawer__cta-btn:hover {
+        background: var(--llvcPrimary, #a3663c);
+    }
+
+    /* ── Drawer: responsive ───────────────────────────────────── */
+    @media (max-width: 900px) {
+        .llvc-drawer { width: 85%; }
+        .llvc-drawer__body { padding: 24px 20px 40px; }
+        .llvc-drawer__card { padding: 24px; }
+        .llvc-drawer__title { font-size: 24px; }
+        .llvc-drawer__also-list { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+        .llvc-drawer { width: 100%; min-width: 0; }
+        .llvc-drawer__also-list { grid-template-columns: 1fr; }
     }
     </style>
     <?php
