@@ -50,7 +50,8 @@ function atb_defaults() {
             'base_bg'      => [ 'label' => 'Accent Background',  'default' => '#f1eadb', 'desc' => 'Cream panel behind the selections list' ],
             'body_text'    => [ 'label' => 'Body Text',          'default' => '#21403e', 'desc' => 'Main text color throughout the builder' ],
             'header'       => [ 'label' => 'Headings',           'default' => '#091714', 'desc' => 'Color for headings and titles' ],
-            'primary'      => [ 'label' => 'Primary / CTA',      'default' => '#a3663c', 'desc' => 'Buttons, selected hotspots, hover states' ],
+            'btn_bg'       => [ 'label' => 'Button Background',   'default' => '#21403e', 'desc' => 'Default background color for submit / CTA buttons' ],
+            'primary'      => [ 'label' => 'Primary / CTA',      'default' => '#a3663c', 'desc' => 'Hover color for buttons, selected hotspots' ],
             'secondary'    => [ 'label' => 'Secondary',          'default' => '#666a6b', 'desc' => 'Secondary text and button color' ],
             'navbar_bg'    => [ 'label' => 'Navbar Background',  'default' => '#0d211d', 'desc' => 'Background of the top navigation bar' ],
             'navbar_link'  => [ 'label' => 'Navbar Links',       'default' => '#f7f4ef', 'desc' => 'Back / Exit link text color' ],
@@ -527,7 +528,41 @@ add_action( 'admin_menu', function () {
         'alpine-treatment-builder',
         'atb_render_settings_page'
     );
-} );
+
+    // Body Area Concerns submenu
+    add_submenu_page(
+        'alpine-treatment-builder',
+        __( 'Body Area Concerns', 'alpine-tb' ),
+        __( 'Body Area Concerns', 'alpine-tb' ),
+        'manage_options',
+        'atb-body-areas',
+        'atb_render_body_areas_page'
+    );
+}, 10 );
+
+// Reorder submenus: Treatments → Body Area Concerns → Settings
+// Runs late (priority 999) so all items are already registered.
+add_action( 'admin_menu', function () {
+    global $submenu;
+    $parent = 'alpine-treatment-builder';
+    if ( empty( $submenu[ $parent ] ) ) return;
+
+    $settings   = [];
+    $body_areas = [];
+    $rest       = []; // Treatments, Add New, Treatment Categories, etc.
+
+    foreach ( $submenu[ $parent ] as $item ) {
+        if ( $item[2] === 'alpine-treatment-builder' ) {
+            $settings[] = $item;
+        } elseif ( $item[2] === 'atb-body-areas' ) {
+            $body_areas[] = $item;
+        } else {
+            $rest[] = $item;
+        }
+    }
+
+    $submenu[ $parent ] = array_values( array_merge( $rest, $body_areas, $settings ) );
+}, 999 );
 
 add_action( 'admin_init', function () {
     $d = atb_defaults();
@@ -553,7 +588,8 @@ add_action( 'admin_init', function () {
 } );
 
 add_action( 'admin_enqueue_scripts', function ( $hook ) {
-    if ( 'settings_page_alpine-treatment-builder' !== $hook ) return;
+    // Matches both toplevel_page_* (add_menu_page) and settings_page_* (add_options_page) slugs.
+    if ( false === strpos( $hook, 'alpine-treatment-builder' ) && false === strpos( $hook, 'atb-body-areas' ) ) return;
     wp_enqueue_media();
     wp_enqueue_style( 'wp-color-picker' );
     wp_enqueue_script( 'wp-color-picker' );
@@ -564,8 +600,8 @@ function atb_render_settings_page() {
     if ( ! current_user_can( 'manage_options' ) ) return;
 
     $tab  = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'general';
-    $tabs = [ 'general' => 'General', 'branding' => 'Branding', 'text' => 'Text', 'areas' => 'Body Areas' ];
-    $base = admin_url( 'options-general.php?page=alpine-treatment-builder' );
+    $tabs = [ 'general' => 'General', 'branding' => 'Branding', 'text' => 'Text' ];
+    $base = admin_url( 'admin.php?page=alpine-treatment-builder' );
 
     $d              = atb_defaults();
     $current_plugin = atb_form_plugin();
@@ -593,28 +629,6 @@ function atb_render_settings_page() {
         .atb-text-group input[type="text"] { width: 100%; max-width: 480px; }
         .atb-text-group textarea { width: 100%; max-width: 480px; height: 72px; resize: vertical; }
         .atb-section-intro { color: #555; margin-bottom: 20px; max-width: 680px; }
-
-        /* ── Body Areas tab ── */
-        .atb-gender-tabs { display:flex; gap:0; margin-bottom:16px; border-bottom:2px solid #ddd; }
-        .atb-gender-tab { background:none; border:none; padding:8px 20px; cursor:pointer; font-size:14px; font-weight:600; color:#666; border-bottom:3px solid transparent; margin-bottom:-2px; }
-        .atb-gender-tab.atb-active { color:#2271b1; border-bottom-color:#2271b1; }
-        .atb-area-row { border:1px solid #e0e0e0; border-radius:6px; margin-bottom:8px; overflow:hidden; background:#fff; }
-        .atb-area-header { display:flex; align-items:center; gap:12px; padding:12px 16px; cursor:pointer; user-select:none; }
-        .atb-area-header:hover { background:#f6f7f7; }
-        .atb-area-chevron { font-size:10px; color:#999; transition:transform .2s; display:inline-block; }
-        .atb-area-row.atb-open .atb-area-chevron { transform:rotate(90deg); }
-        .atb-view-badge { background:#e8f0fe; color:#1a56db; font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; text-transform:uppercase; }
-        .atb-concern-count { color:#999; font-size:12px; margin-left:auto; }
-        .atb-area-body { padding:12px 16px; border-top:1px solid #f0f0f0; background:#fafafa; }
-        .atb-concerns-list { list-style:none; margin:0 0 12px; padding:0; }
-        .atb-concerns-list li { display:flex; align-items:center; padding:6px 0; border-bottom:1px solid #eee; }
-        .atb-concerns-list li:last-child { border-bottom:none; }
-        .atb-concern-label { flex:1; font-size:13px; }
-        .atb-remove-concern { background:none; border:none; color:#c00; cursor:pointer; font-size:18px; padding:0 4px; line-height:1; }
-        .atb-remove-concern:hover { color:#900; }
-        .atb-add-concern { display:flex; gap:8px; margin-top:8px; }
-        .atb-new-concern-label { flex:1; }
-        .atb-areas-footer { margin-top:20px; padding-top:16px; border-top:1px solid #ddd; }
     </style>
 
     <nav class="nav-tab-wrapper atb-nav-tab-wrapper">
@@ -855,61 +869,7 @@ function atb_render_settings_page() {
         <?php submit_button(); ?>
     </form>
 
-    <?php /* ══════════════ BODY AREAS TAB ══════════════ */ ?>
-    <?php elseif ( 'areas' === $tab ) :
-        $areas      = atb_get_body_areas();
-        $areas_json = wp_json_encode( $areas );
-        wp_nonce_field( 'atb_body_areas_nonce', 'atb_areas_nonce' );
-    ?>
-    <div class="atb-areas-wrap" style="margin-top:24px;">
-    <p class="atb-section-intro"><?php esc_html_e( 'Add or remove concerns for each body area. Hotspot positions on the body image are fixed and cannot be changed here.', 'alpine-tb' ); ?></p>
-    <div class="atb-gender-tabs">
-        <button class="atb-gender-tab atb-active" data-gender="female"><?php esc_html_e( 'Female', 'alpine-tb' ); ?></button>
-        <button class="atb-gender-tab" data-gender="male"><?php esc_html_e( 'Male', 'alpine-tb' ); ?></button>
-    </div>
-    <div id="atb-areas-list">
-    <?php foreach ( [ 'female', 'male' ] as $gender ) : ?>
-        <div class="atb-gender-section" data-gender="<?php echo esc_attr( $gender ); ?>"<?php echo 'female' !== $gender ? ' style="display:none"' : ''; ?>>
-        <?php foreach ( $areas as $area ) :
-            if ( $area['gender'] !== $gender ) continue;
-        ?>
-            <div class="atb-area-row"
-                 data-area-id="<?php echo (int) $area['id']; ?>"
-                 data-gender="<?php echo esc_attr( $area['gender'] ); ?>"
-                 data-view="<?php echo esc_attr( $area['view'] ); ?>"
-                 data-header="<?php echo esc_attr( $area['header'] ); ?>"
-                 data-section-label="<?php echo esc_attr( $area['section_label'] ); ?>">
-                <div class="atb-area-header">
-                    <span class="atb-area-chevron">&#9658;</span>
-                    <strong><?php echo esc_html( $area['section_label'] ); ?></strong>
-                    <span class="atb-view-badge"><?php echo esc_html( ucfirst( $area['view'] ) ); ?></span>
-                    <span class="atb-concern-count"><?php echo count( $area['concerns'] ); ?> <?php esc_html_e( 'concerns', 'alpine-tb' ); ?></span>
-                </div>
-                <div class="atb-area-body" style="display:none;">
-                    <ul class="atb-concerns-list">
-                    <?php foreach ( $area['concerns'] as $c ) : ?>
-                        <li data-id="<?php echo esc_attr( $c['id'] ); ?>">
-                            <span class="atb-concern-label"><?php echo esc_html( $c['label'] ); ?></span>
-                            <button type="button" class="atb-remove-concern" title="<?php esc_attr_e( 'Remove', 'alpine-tb' ); ?>">&times;</button>
-                        </li>
-                    <?php endforeach; ?>
-                    </ul>
-                    <div class="atb-add-concern">
-                        <input type="text" class="atb-new-concern-label" placeholder="<?php esc_attr_e( 'Concern name...', 'alpine-tb' ); ?>">
-                        <button type="button" class="button atb-add-concern-btn"><?php esc_html_e( '+ Add', 'alpine-tb' ); ?></button>
-                    </div>
-                </div>
-            </div>
-        <?php endforeach; ?>
-        </div>
-    <?php endforeach; ?>
-    </div><!-- #atb-areas-list -->
-    <div class="atb-areas-footer">
-        <button type="button" id="atb-areas-save" class="button button-primary"><?php esc_html_e( 'Save All Changes', 'alpine-tb' ); ?></button>
-        <span id="atb-areas-status" style="margin-left:12px;"></span>
-    </div>
-    </div><!-- .atb-areas-wrap -->
-    <?php endif; ?>
+    <?php endif; /* end tab conditionals */ ?>
 
     </div><!-- .wrap -->
 
@@ -972,7 +932,98 @@ function atb_render_settings_page() {
         $fontSelect.on('change', function(){ loadFont( $(this).val() ); });
         if ( $fontSelect.length ) loadFont( $fontSelect.val() );
 
-        /* ── Body Areas ── */
+    });
+    </script>
+    <?php
+}
+
+/* ===============================================================
+ * BODY AREA CONCERNS — ADMIN PAGE
+ * ============================================================= */
+
+function atb_render_body_areas_page() {
+    if ( ! current_user_can( 'manage_options' ) ) return;
+    $areas = atb_get_body_areas();
+    ?>
+    <div class="wrap">
+    <h1><?php esc_html_e( 'Body Area Concerns', 'alpine-tb' ); ?></h1>
+    <style>
+        .atb-section-intro { color: #555; margin-bottom: 20px; max-width: 680px; }
+        .atb-gender-tabs { display:flex; gap:0; margin-bottom:16px; border-bottom:2px solid #ddd; }
+        .atb-gender-tab { background:none; border:none; padding:8px 20px; cursor:pointer; font-size:14px; font-weight:600; color:#666; border-bottom:3px solid transparent; margin-bottom:-2px; }
+        .atb-gender-tab.atb-active { color:#2271b1; border-bottom-color:#2271b1; }
+        .atb-area-row { border:1px solid #e0e0e0; border-radius:6px; margin-bottom:8px; overflow:hidden; background:#fff; }
+        .atb-area-header { display:flex; align-items:center; gap:12px; padding:12px 16px; cursor:pointer; user-select:none; }
+        .atb-area-header:hover { background:#f6f7f7; }
+        .atb-area-chevron { font-size:10px; color:#999; transition:transform .2s; display:inline-block; }
+        .atb-area-row.atb-open .atb-area-chevron { transform:rotate(90deg); }
+        .atb-view-badge { background:#e8f0fe; color:#1a56db; font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; text-transform:uppercase; }
+        .atb-concern-count { color:#999; font-size:12px; margin-left:auto; }
+        .atb-area-body { padding:12px 16px; border-top:1px solid #f0f0f0; background:#fafafa; }
+        .atb-concerns-list { list-style:none; margin:0 0 12px; padding:0; }
+        .atb-concerns-list li { display:flex; align-items:center; padding:6px 0; border-bottom:1px solid #eee; }
+        .atb-concerns-list li:last-child { border-bottom:none; }
+        .atb-concern-label { flex:1; font-size:13px; }
+        .atb-remove-concern { background:none; border:none; color:#c00; cursor:pointer; font-size:18px; padding:0 4px; line-height:1; }
+        .atb-remove-concern:hover { color:#900; }
+        .atb-add-concern { display:flex; gap:8px; margin-top:8px; }
+        .atb-new-concern-label { flex:1; }
+        .atb-areas-footer { margin-top:20px; padding-top:16px; border-top:1px solid #ddd; }
+    </style>
+
+    <div class="atb-areas-wrap" style="margin-top:24px;">
+    <p class="atb-section-intro"><?php esc_html_e( 'Add or remove concerns for each body area. Hotspot positions on the body image are fixed and cannot be changed here.', 'alpine-tb' ); ?></p>
+    <div class="atb-gender-tabs">
+        <button class="atb-gender-tab atb-active" data-gender="female"><?php esc_html_e( 'Female', 'alpine-tb' ); ?></button>
+        <button class="atb-gender-tab" data-gender="male"><?php esc_html_e( 'Male', 'alpine-tb' ); ?></button>
+    </div>
+    <div id="atb-areas-list">
+    <?php foreach ( [ 'female', 'male' ] as $gender ) : ?>
+        <div class="atb-gender-section" data-gender="<?php echo esc_attr( $gender ); ?>"<?php echo 'female' !== $gender ? ' style="display:none"' : ''; ?>>
+        <?php foreach ( $areas as $area ) :
+            if ( $area['gender'] !== $gender ) continue;
+        ?>
+            <div class="atb-area-row"
+                 data-area-id="<?php echo (int) $area['id']; ?>"
+                 data-gender="<?php echo esc_attr( $area['gender'] ); ?>"
+                 data-view="<?php echo esc_attr( $area['view'] ); ?>"
+                 data-header="<?php echo esc_attr( $area['header'] ); ?>"
+                 data-section-label="<?php echo esc_attr( $area['section_label'] ); ?>">
+                <div class="atb-area-header">
+                    <span class="atb-area-chevron">&#9658;</span>
+                    <strong><?php echo esc_html( $area['section_label'] ); ?></strong>
+                    <span class="atb-view-badge"><?php echo esc_html( ucfirst( $area['view'] ) ); ?></span>
+                    <span class="atb-concern-count"><?php echo count( $area['concerns'] ); ?> <?php esc_html_e( 'concerns', 'alpine-tb' ); ?></span>
+                </div>
+                <div class="atb-area-body" style="display:none;">
+                    <ul class="atb-concerns-list">
+                    <?php foreach ( $area['concerns'] as $c ) : ?>
+                        <li data-id="<?php echo esc_attr( $c['id'] ); ?>">
+                            <span class="atb-concern-label"><?php echo esc_html( $c['label'] ); ?></span>
+                            <button type="button" class="atb-remove-concern" title="<?php esc_attr_e( 'Remove', 'alpine-tb' ); ?>">&times;</button>
+                        </li>
+                    <?php endforeach; ?>
+                    </ul>
+                    <div class="atb-add-concern">
+                        <input type="text" class="atb-new-concern-label" placeholder="<?php esc_attr_e( 'Concern name...', 'alpine-tb' ); ?>">
+                        <button type="button" class="button atb-add-concern-btn"><?php esc_html_e( '+ Add', 'alpine-tb' ); ?></button>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+        </div>
+    <?php endforeach; ?>
+    </div><!-- #atb-areas-list -->
+    <div class="atb-areas-footer">
+        <?php wp_nonce_field( 'atb_body_areas_nonce', 'atb_areas_nonce' ); ?>
+        <button type="button" id="atb-areas-save" class="button button-primary"><?php esc_html_e( 'Save All Changes', 'alpine-tb' ); ?></button>
+        <span id="atb-areas-status" style="margin-left:12px;"></span>
+    </div>
+    </div><!-- .atb-areas-wrap -->
+    </div><!-- .wrap -->
+
+    <script>
+    jQuery(function($){
         // Gender tab switching
         $('.atb-gender-tab').on('click', function(){
             $('.atb-gender-tab').removeClass('atb-active');
@@ -1014,7 +1065,7 @@ function atb_render_settings_page() {
             $row.find('.atb-concern-count').text($row.find('.atb-concerns-list li').length + ' concerns');
         });
 
-        // Save body areas
+        // Save body areas via AJAX
         $('#atb-areas-save').on('click', function(){
             var $btn    = $(this);
             var $status = $('#atb-areas-status');
@@ -1042,17 +1093,16 @@ function atb_render_settings_page() {
                 areas:  JSON.stringify(areas)
             }).done(function(r){
                 if (r.success) {
-                    $status.css('color', 'green').text('✓ Saved successfully.');
+                    $status.css('color','green').text('✓ Saved successfully.');
                 } else {
-                    $status.css('color', 'red').text('Error: ' + (r.data || 'Unknown error'));
+                    $status.css('color','red').text('Error: ' + (r.data || 'Unknown error'));
                 }
             }).fail(function(){
-                $status.css('color', 'red').text('Save failed. Please try again.');
+                $status.css('color','red').text('Save failed. Please try again.');
             }).always(function(){
                 $btn.prop('disabled', false).text('Save All Changes');
             });
         });
-
     });
     </script>
     <?php
@@ -1309,6 +1359,7 @@ add_action( 'wp_enqueue_scripts', function () {
             --llvcBaseBackground:              ' . atb_color('base_bg')      . ';
             --llvcHeader:                      ' . atb_color('header')       . ';
             --llvcBodyText:                    ' . atb_color('body_text')    . ';
+            --llvcButtonBg:                    ' . atb_color('btn_bg')       . ';
             --llvcPrimary:                     ' . atb_color('primary')      . ';
             --llvcSecondaryButtons:            ' . atb_color('secondary')    . ';
             --llvcMisc:                        ' . atb_color('secondary')    . ';
@@ -1393,11 +1444,235 @@ add_action( 'wp_enqueue_scripts', function () {
             color: var(--llvcBodyText) !important;
         }
 
-        /* ---- Gravity Forms field list reset ---- */
+        /* ================================================================
+           FORM STYLES — applies to both WPForms and Gravity Forms
+           inside .llvc__form (step vc-3 of the treatment builder)
+           ================================================================ */
+
+        /* ---- Form step background (cream) — reinforced by the .is-active rule above ---- */
+        .llvc__form {
+            background-color: var(--llvcBaseBackground, #f1eadb) !important;
+        }
+
+        /* ---- Form content width — widen from compiled 370px ---- */
+        .llvc__form .llvc__form-content {
+            max-width: 480px !important;
+            padding-left: 24px !important;
+            padding-right: 24px !important;
+            box-sizing: border-box !important;
+        }
+
+        /* ---- Field spacing ---- */
         .llvc__form .gform_fields {
             list-style: none !important; padding: 0 !important; margin: 0 !important;
         }
-        .llvc__form .gform_fields .gfield { margin-bottom: 16px !important; }
+        .llvc__form .gform_fields .gfield,
+        .llvc__form .wpforms-field {
+            margin-bottom: 20px !important;
+            padding: 0 !important;
+        }
+
+        /* ---- Labels ---- */
+        .llvc__form .gfield_label,
+        .llvc__form .wpforms-field-label {
+            display: block !important;
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            color: var(--llvcHeader, #091714) !important;
+            margin-bottom: 8px !important;
+            font-family: inherit !important;
+        }
+
+        /* ---- Required asterisk ---- */
+        .llvc__form .gfield_required,
+        .llvc__form .wpforms-required-label {
+            color: #c0392b !important;
+            margin-left: 4px !important;
+        }
+
+        /* ---- GF / WPF containers — force full width so inputs match the button ---- */
+        .llvc__form .ginput_container,
+        .llvc__form .ginput_container_text,
+        .llvc__form .ginput_container_email,
+        .llvc__form .ginput_container_phone,
+        .llvc__form .ginput_container_select,
+        .llvc__form .ginput_container_textarea,
+        .llvc__form .wpforms-field-container {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        /* GF size classes (small / medium / large) often set explicit pixel widths */
+        .llvc__form input.small,
+        .llvc__form input.medium,
+        .llvc__form input.large,
+        .llvc__form select.small,
+        .llvc__form select.medium,
+        .llvc__form select.large,
+        .llvc__form .gfield input,
+        .llvc__form .gfield select,
+        .llvc__form .gfield textarea {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        /* WPForms size classes applied directly on <input> — override max-width: 60% / 25% etc */
+        .llvc__form input.wpforms-field-small,
+        .llvc__form input.wpforms-field-medium,
+        .llvc__form input.wpforms-field-large,
+        .llvc__form select.wpforms-field-small,
+        .llvc__form select.wpforms-field-medium,
+        .llvc__form select.wpforms-field-large,
+        .llvc__form textarea.wpforms-field-small,
+        .llvc__form textarea.wpforms-field-medium,
+        .llvc__form textarea.wpforms-field-large {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* ---- Text / email / tel / number inputs & textarea ---- */
+        .llvc__form input[type="text"],
+        .llvc__form input[type="email"],
+        .llvc__form input[type="tel"],
+        .llvc__form input[type="number"],
+        .llvc__form input[type="url"],
+        .llvc__form input[type="password"],
+        .llvc__form select,
+        .llvc__form textarea {
+            display: block !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            height: 58px !important;
+            padding: 0 18px !important;
+            background: #fff !important;
+            border: 1.5px solid #d9d9d9 !important;
+            border-radius: 8px !important;
+            font-size: 16px !important;
+            font-family: inherit !important;
+            color: var(--llvcHeader, #091714) !important;
+            box-shadow: none !important;
+            outline: none !important;
+            transition: border-color 0.2s !important;
+            -webkit-appearance: none !important;
+        }
+        .llvc__form textarea {
+            height: auto !important;
+            min-height: 120px !important;
+            padding: 14px 18px !important;
+            resize: vertical !important;
+        }
+        .llvc__form input[type="text"]:focus,
+        .llvc__form input[type="email"]:focus,
+        .llvc__form input[type="tel"]:focus,
+        .llvc__form input[type="number"]:focus,
+        .llvc__form input[type="url"]:focus,
+        .llvc__form select:focus,
+        .llvc__form textarea:focus {
+            border-color: var(--llvcPrimary, #a3663c) !important;
+            box-shadow: 0 0 0 3px rgba(163,102,60,0.12) !important;
+        }
+        .llvc__form input::placeholder,
+        .llvc__form textarea::placeholder {
+            color: #b0b0b0 !important;
+            opacity: 1 !important;
+        }
+
+        /* ---- Checkbox & radio ---- */
+        .llvc__form input[type="checkbox"],
+        .llvc__form input[type="radio"] {
+            width: 18px !important;
+            height: 18px !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            border: 1.5px solid #d9d9d9 !important;
+            border-radius: 4px !important;
+            background: #fff !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+            flex-shrink: 0 !important;
+            vertical-align: middle !important;
+            margin: 0 8px 0 0 !important;
+            padding: 0 !important;
+        }
+        .llvc__form .gfield--type-checkbox .gfield_label,
+        .llvc__form .gfield--type-radio .gfield_label,
+        .llvc__form .wpforms-field-checkbox .wpforms-field-label,
+        .llvc__form .wpforms-field-radio .wpforms-field-label {
+            font-weight: 400 !important;
+        }
+        .llvc__form .gfield_checkbox label,
+        .llvc__form .gfield_radio label,
+        .llvc__form .wpforms-field-checkbox label,
+        .llvc__form .wpforms-field-radio label {
+            display: inline-flex !important;
+            align-items: center !important;
+            font-size: 15px !important;
+            color: var(--llvcBodyText, #21403e) !important;
+            font-weight: 400 !important;
+            cursor: pointer !important;
+        }
+
+        /* ---- Submit button ---- */
+        .llvc__form input[type="submit"],
+        .llvc__form button[type="submit"],
+        .llvc__form .gform_button,
+        .llvc__form .wpforms-submit {
+            display: block !important;
+            width: 100% !important;
+            height: 62px !important;
+            padding: 0 24px !important;
+            margin-top: 8px !important;
+            background: var(--llvcButtonBg, #21403e) !important;
+            color: #fff !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            font-family: inherit !important;
+            letter-spacing: 0.01em !important;
+            cursor: pointer !important;
+            box-shadow: none !important;
+            transition: background 0.2s !important;
+        }
+        .llvc__form input[type="submit"]:hover,
+        .llvc__form button[type="submit"]:hover,
+        .llvc__form .gform_button:hover,
+        .llvc__form .wpforms-submit:hover {
+            background: var(--llvcPrimary, #a3663c) !important;
+        }
+
+        /* ---- Hide WPForms / GF chrome not needed ---- */
+        .llvc__form .wpforms-page-indicator,
+        .llvc__form .gform_page_footer .gf_progressbar_wrapper { display: none !important; }
+
+        /* ---- GF: remove default padding on wrapper ---- */
+        .llvc__form .gform_wrapper,
+        .llvc__form .gform_body { padding: 0 !important; margin: 0 !important; }
+
+        /* ---- WPForms: remove default bottom padding ---- */
+        .llvc__form .wpforms-form .wpforms-field:last-child { margin-bottom: 0 !important; }
+
+        /* ---- Sublabels (WPForms name field split) ---- */
+        .llvc__form .wpforms-field-sublabel {
+            font-size: 12px !important;
+            color: #999 !important;
+            margin-top: 4px !important;
+        }
+
+        /* ---- Validation / error states ---- */
+        .llvc__form input.wpforms-error,
+        .llvc__form .gfield_error input,
+        .llvc__form .gfield_error select,
+        .llvc__form .gfield_error textarea {
+            border-color: #c0392b !important;
+        }
+        .llvc__form .wpforms-error-container,
+        .llvc__form label.wpforms-error,
+        .llvc__form .gfield_description.validation_message {
+            font-size: 13px !important;
+            color: #c0392b !important;
+            margin-top: 4px !important;
+        }
 
         /* ---- Left column white background ---- */
         .llvc--concerns .llvc__body-column { background-color: #fff !important; }
@@ -1440,6 +1715,66 @@ add_action( 'wp_enqueue_scripts', function () {
         .llvc__concerns__footer .llvc__finish-consultation { display: none; }
         .llvc__concerns__footer .llvc__finish-consultation.has-concerns { display: inline-block; }
 
+        /* ================================================================
+           CONCERNS COLUMN LAYOUT — nested flex columns so every level
+           adapts its height rather than using fixed calc() values.
+           This keeps the Finish button pinned at the bottom AND keeps
+           the Add button visible inside the concern area panel.
+           ================================================================ */
+
+        /* 1. Column becomes a flex column */
+        .llvc--concerns .llvc__concerns-column {
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        /* 2. Container grows to fill column minus the footer */
+        .llvc--concerns .llvc__concerns-container {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        /* 3. The form fills the container */
+        .llvc--concerns .llvc__concerns-form {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        /* 4. Active area / main fill the form — height now adapts to
+              available space instead of using calc(100vh - topOffset - 80px) */
+        .llvc--concerns .llvc__concerns__area.is-active,
+        .llvc--concerns .llvc__concerns__main.is-active {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow-y: auto !important;
+        }
+
+        /* 5. Inside the area: list scrolls, Add button stays at bottom */
+        .llvc__concerns__area .llvc__concerns__area-list {
+            flex: 1 1 0 !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+        }
+
+        /* 6. Footer: Finish button pinned at the bottom */
+        .llvc--concerns .llvc__concerns__footer {
+            flex: 0 0 auto !important;
+            display: flex !important;
+            align-items: center !important;
+            padding: 12px 0 !important;
+        }
+        .llvc--concerns .llvc__concerns__footer .llvc__finish-consultation--desktop {
+            width: 100% !important;
+        }
+
         /* ---- Your Selections heading size ---- */
         .llvc .llvc__heading.llvc__heading--concerns {
             font-size: 18px !important; line-height: 1.3 !important; font-weight: 700 !important;
@@ -1456,6 +1791,10 @@ add_action( 'wp_enqueue_scripts', function () {
             height: calc(100vh - var(--llvcTopOffset)) !important;
             overflow-y: auto !important; overflow-x: hidden !important;
             z-index: 9990 !important; background-color: #fff !important;
+        }
+        /* Form step (vc-3) gets the cream background instead of white */
+        body.atb-page:not(.atb-page--with-chrome) .llvc--concerns .llvc__form.is-active {
+            background-color: var(--llvcBaseBackground, #f1eadb) !important;
         }
         body.atb-page:not(.atb-page--with-chrome) {
             overflow: hidden; background-color: #fff !important; background-image: none !important;
