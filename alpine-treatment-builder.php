@@ -507,9 +507,22 @@ add_action( 'admin_notices', function () {
  * ============================================================= */
 
 add_action( 'admin_menu', function () {
-    add_options_page(
-        __( 'Treatment Builder Settings', 'alpine-tb' ),
+    // Top-level Treatment Builder menu
+    add_menu_page(
         __( 'Treatment Builder', 'alpine-tb' ),
+        __( 'Treatment Builder', 'alpine-tb' ),
+        'manage_options',
+        'alpine-treatment-builder',
+        'atb_render_settings_page',
+        'dashicons-clipboard',
+        25
+    );
+
+    // Rename the auto-generated first submenu from "Treatment Builder" to "Settings"
+    add_submenu_page(
+        'alpine-treatment-builder',
+        __( 'Treatment Builder Settings', 'alpine-tb' ),
+        __( 'Settings', 'alpine-tb' ),
         'manage_options',
         'alpine-treatment-builder',
         'atb_render_settings_page'
@@ -1094,7 +1107,7 @@ add_action( 'init', function () {
         ],
         'public'       => false,
         'show_ui'      => true,
-        'show_in_menu' => true,
+        'show_in_menu' => 'alpine-treatment-builder',
         'supports'     => [ 'title', 'editor' ],
         'menu_icon'    => 'dashicons-heart',
         'has_archive'  => false,
