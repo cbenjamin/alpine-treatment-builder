@@ -75,7 +75,6 @@ $atbm_figures = [
     --atb2-muted:       <?php echo $atbm_c['muted']; ?>;
     --atb2-accent:      <?php echo $atbm_c['accent']; ?>;
     --atb2-btn-bg:      <?php echo $atbm_c['btn_bg']; ?>;
-    --atb2-hotspot:     <?php echo $atbm_c['accent']; ?>;
     --atb2-font:        '<?php echo esc_attr( $atbm_font ); ?>', system-ui, -apple-system, sans-serif;
     --atb2-radius:      8px;
     --atb2-shadow:      0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
@@ -84,38 +83,94 @@ $atbm_figures = [
 
 .atb2-wrap *, .atb2-wrap *::before, .atb2-wrap *::after { box-sizing: border-box; }
 
+/* ── THEME CHROME SUPPRESSION (PHP class applied server-side = no FOUC) ── */
 <?php if ( ! $atbm_use_chrome ) : ?>
-body.atb2-page { margin:0; padding:0; background: var(--atb2-page-bg) !important; }
-body.atb2-page header:not(.atb2-nav), body.atb2-page .site-header,
-body.atb2-page footer, body.atb2-page .site-footer,
-body.atb2-page .entry-header, body.atb2-page h1.entry-title,
-body.atb2-page .page-title { display: none !important; }
-body.atb2-page main, body.atb2-page .site-main, body.atb2-page #main,
-body.atb2-page .entry-content, body.atb2-page .content-area,
-body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inner) {
-    padding: 0 !important; margin: 0 !important;
-    max-width: 100% !important; width: 100% !important;
+body.atb-page--modern,
+body.atb2-page {
+    margin: 0 !important;
+    padding-top: 0 !important;
+    background: var(--atb2-page-bg) !important;
+    overflow-x: hidden;
+}
+body.atb-page--modern .site-header,
+body.atb2-page .site-header,
+body.atb-page--modern header.ast-site-header-wrap,
+body.atb2-page header.ast-site-header-wrap,
+body.atb-page--modern .ast-above-header-bar,
+body.atb2-page .ast-above-header-bar,
+body.atb-page--modern .ast-breadcrumbs-wrapper,
+body.atb2-page .ast-breadcrumbs-wrapper,
+body.atb-page--modern .entry-header,
+body.atb2-page .entry-header,
+body.atb-page--modern h1.entry-title,
+body.atb2-page h1.entry-title,
+body.atb-page--modern .page-title,
+body.atb2-page .page-title,
+body.atb-page--modern footer.site-footer,
+body.atb2-page footer.site-footer,
+body.atb-page--modern .site-footer,
+body.atb2-page .site-footer { display: none !important; }
+body.atb-page--modern main,
+body.atb2-page main,
+body.atb-page--modern .site-main,
+body.atb2-page .site-main,
+body.atb-page--modern #main,
+body.atb2-page #main,
+body.atb-page--modern #content,
+body.atb2-page #content,
+body.atb-page--modern .ast-container,
+body.atb2-page .ast-container,
+body.atb-page--modern .entry-content,
+body.atb2-page .entry-content,
+body.atb-page--modern .content-area,
+body.atb2-page .content-area,
+body.atb-page--modern article,
+body.atb2-page article {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
     background: transparent !important;
 }
 <?php endif; ?>
 
+/* ── OUTER WRAP — breaks out of WP theme's max-width container ── */
 .atb2-wrap {
+    position: relative;
+    width: 100vw;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 100vw;
     font-family: var(--atb2-font);
     color: var(--atb2-text);
     background: var(--atb2-page-bg);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    /* Prevent button/label text-transform from WP theme */
+    text-transform: none !important;
+}
+.atb2-wrap button,
+.atb2-wrap a,
+.atb2-wrap label,
+.atb2-wrap span,
+.atb2-wrap p,
+.atb2-wrap h1,
+.atb2-wrap h2,
+.atb2-wrap h3 {
+    text-transform: none !important;
+    font-family: var(--atb2-font) !important;
 }
 
 /* ── NAVBAR ── */
 .atb2-nav {
     background: var(--atb2-dark);
     position: sticky;
-    top: 0;
+    top: var(--wp-admin--admin-bar--height, 0px);
     z-index: 50;
     height: 64px;
     flex-shrink: 0;
+    width: 100%;
 }
 .atb2-nav__inner {
     max-width: 1280px;
@@ -127,25 +182,32 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     gap: 12px;
     padding: 0 24px;
 }
-.atb2-nav__back, .atb2-nav__exit {
-    background: none;
-    border: none;
-    color: #f7f4ef;
-    font-size: 14px;
-    font-family: var(--atb2-font);
-    font-weight: 500;
-    cursor: pointer;
+.atb2-nav__back,
+.atb2-nav__exit {
+    background: none !important;
+    border: none !important;
+    color: #f7f4ef !important;
+    font-size: 14px !important;
+    font-family: var(--atb2-font) !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 10px;
-    border-radius: 6px;
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
     transition: background 0.15s;
-    text-decoration: none;
+    text-decoration: none !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    line-height: 1.4 !important;
 }
-.atb2-nav__back:hover, .atb2-nav__exit:hover { background: rgba(255,255,255,0.1); color: #f7f4ef; }
+.atb2-nav__back:hover,
+.atb2-nav__exit:hover { background: rgba(255,255,255,0.1) !important; color: #f7f4ef !important; }
 .atb2-nav__exit { margin-left: auto; }
 .atb2-nav__logo { max-height: 40px; max-width: 160px; display: block; margin: 0 auto; object-fit: contain; }
+/* Hide back button on intro screen */
+.atb2-nav__back.is-hidden { visibility: hidden; pointer-events: none; }
 
 /* ── PAGE BODY ── */
 .atb2-page-body { flex: 1; overflow-y: auto; }
@@ -154,6 +216,144 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
 /* ── SCREENS ── */
 .atb2-screen { display: none; }
 .atb2-screen.is-active { display: block; }
+
+/* ══════════════════════════════════════════════════════════════════
+ * INTRO SCREEN
+ * ══════════════════════════════════════════════════════════════════ */
+.atb2-intro-inner { padding: 40px 24px 60px; }
+.atb2-intro-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    align-items: center;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+@media (min-width: 860px) {
+    .atb2-intro-grid { grid-template-columns: 1fr 340px; }
+}
+.atb2-intro-brand {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.14em;
+    text-transform: uppercase !important;
+    color: var(--atb2-muted) !important;
+    margin: 0 0 16px !important;
+}
+.atb2-intro-heading {
+    font-size: 34px !important;
+    font-weight: 700 !important;
+    color: var(--atb2-dark) !important;
+    line-height: 1.2 !important;
+    margin: 0 0 12px !important;
+}
+.atb2-intro-subtitle {
+    font-size: 16px !important;
+    color: var(--atb2-muted) !important;
+    margin: 0 0 20px !important;
+    line-height: 1.5 !important;
+}
+.atb2-intro-privacy {
+    border-left: 3px solid var(--atb2-accent);
+    padding-left: 14px;
+    margin: 0 0 28px;
+}
+.atb2-intro-privacy p {
+    font-size: 14px !important;
+    color: var(--atb2-muted) !important;
+    margin: 0 !important;
+    line-height: 1.6 !important;
+}
+.atb2-intro-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0 0 32px;
+}
+.atb2-step-card {
+    background: var(--atb2-card-bg);
+    border: 1px solid var(--atb2-card-border);
+    border-radius: var(--atb2-radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    box-shadow: var(--atb2-shadow);
+}
+.atb2-step-num {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: var(--atb2-accent) !important;
+    min-width: 26px;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-family: var(--atb2-font) !important;
+}
+.atb2-step-card p {
+    font-size: 14px !important;
+    color: var(--atb2-text) !important;
+    margin: 0 !important;
+    line-height: 1.5 !important;
+}
+.atb2-intro-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+}
+.atb2-start-btn {
+    background: var(--atb2-dark) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: var(--atb2-radius) !important;
+    padding: 14px 36px !important;
+    font-family: var(--atb2-font) !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    line-height: 1.4 !important;
+    display: inline-block;
+}
+.atb2-start-btn:hover { background: var(--atb2-btn-bg) !important; }
+.atb2-visit-link {
+    font-size: 14px !important;
+    color: var(--atb2-muted) !important;
+    text-decoration: underline !important;
+    cursor: pointer;
+    background: none !important;
+    border: none !important;
+    font-family: var(--atb2-font) !important;
+    padding: 0 !important;
+    display: inline-block;
+}
+.atb2-visit-link:hover { color: var(--atb2-text) !important; }
+.atb2-intro-figure-card {
+    background: var(--atb2-card-bg);
+    border: 1px solid var(--atb2-card-border);
+    border-radius: var(--atb2-radius);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    box-shadow: var(--atb2-shadow);
+}
+.atb2-intro-figure-card svg,
+.atb2-intro-figure-card img {
+    width: 100%;
+    max-height: 480px;
+    object-fit: contain;
+    display: block;
+    padding: 16px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ * BUILDER SCREEN
+ * ══════════════════════════════════════════════════════════════════ */
 
 /* ── CONTROLS ROW ── */
 .atb2-controls {
@@ -179,24 +379,27 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     gap: 2px;
 }
 .atb2-seg__btn {
-    background: none;
-    border: none;
-    padding: 7px 16px;
-    border-radius: 4px;
-    font-family: var(--atb2-font);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--atb2-muted);
-    cursor: pointer;
-    transition: all 0.15s;
+    background: none !important;
+    border: none !important;
+    padding: 7px 16px !important;
+    border-radius: 4px !important;
+    font-family: var(--atb2-font) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--atb2-muted) !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
     white-space: nowrap;
+    text-transform: none !important;
+    box-shadow: none !important;
+    line-height: 1.4 !important;
 }
 .atb2-seg__btn.is-active {
-    background: #fff;
-    color: var(--atb2-dark);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+    background: var(--atb2-dark) !important;
+    color: #fff !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.12) !important;
 }
-.atb2-seg__btn:hover:not(.is-active) { color: var(--atb2-text); }
+.atb2-seg__btn:hover:not(.is-active) { color: var(--atb2-text) !important; }
 
 /* ── MAIN GRID ── */
 .atb2-grid { display: grid; gap: 16px; align-items: start; }
@@ -215,7 +418,7 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
 .atb2-map-card { padding: 16px; }
 .atb2-map-grid { display: grid; gap: 16px; }
 @media (min-width: 700px) {
-    .atb2-map-grid { grid-template-columns: minmax(240px, 400px) 1fr; align-items: start; }
+    .atb2-map-grid { grid-template-columns: minmax(240px, 380px) 1fr; align-items: start; }
 }
 
 /* ── BODY STAGE ── */
@@ -243,32 +446,40 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     display: grid;
     place-items: center;
     cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
     z-index: 10;
+    box-shadow: none !important;
+    line-height: 1 !important;
 }
 .atb2-hotspot__dot {
     width: 28px;
     height: 28px;
-    background: var(--atb2-hotspot);
+    background: rgba(255,255,255,0.92);
     border-radius: 50%;
-    border: 2.5px solid #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    border: 2px solid rgba(255,255,255,0.6);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.22);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 16px;
     font-weight: 700;
-    color: #fff;
+    color: var(--atb2-dark);
     line-height: 1;
     transition: transform 0.15s, box-shadow 0.15s;
+    font-family: var(--atb2-font) !important;
+    text-transform: none !important;
 }
-.atb2-hotspot:hover .atb2-hotspot__dot, .atb2-hotspot.is-active .atb2-hotspot__dot {
+.atb2-hotspot:hover .atb2-hotspot__dot,
+.atb2-hotspot.is-active .atb2-hotspot__dot {
     transform: scale(1.15);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.28);
 }
-.atb2-hotspot.has-selections .atb2-hotspot__dot { background: var(--atb2-dark); }
+.atb2-hotspot.has-selections .atb2-hotspot__dot {
+    background: var(--atb2-dark);
+    color: #fff;
+}
 .atb2-hotspot__label {
     position: absolute;
     bottom: calc(100% + 4px);
@@ -277,7 +488,7 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     background: var(--atb2-dark);
     color: #fff;
     font-size: 11px;
-    font-family: var(--atb2-font);
+    font-family: var(--atb2-font) !important;
     font-weight: 600;
     white-space: nowrap;
     padding: 3px 8px;
@@ -285,13 +496,24 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.15s;
+    text-transform: none !important;
 }
-.atb2-hotspot:hover .atb2-hotspot__label, .atb2-hotspot:focus .atb2-hotspot__label { opacity: 1; }
+.atb2-hotspot:hover .atb2-hotspot__label,
+.atb2-hotspot:focus .atb2-hotspot__label { opacity: 1; }
 .atb2-hotspot--nav .atb2-hotspot__dot {
-    background: var(--atb2-muted);
+    background: rgba(255,255,255,0.75);
+    color: var(--atb2-muted);
     width: 24px;
     height: 24px;
     font-size: 12px;
+}
+
+/* ── RIGHT PANEL (concern panel + empty state + area buttons) ── */
+.atb2-map-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 200px;
 }
 
 /* ── CONCERN PANEL ── */
@@ -301,19 +523,26 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: none;
-    border: none;
-    color: var(--atb2-muted);
-    font-family: var(--atb2-font);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    padding: 0;
+    background: none !important;
+    border: none !important;
+    color: var(--atb2-muted) !important;
+    font-family: var(--atb2-font) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
     margin-bottom: 12px;
     transition: color 0.15s;
+    box-shadow: none !important;
+    text-transform: none !important;
 }
-.atb2-panel-back:hover { color: var(--atb2-text); }
-.atb2-concern-heading { font-size: 18px; font-weight: 700; color: var(--atb2-dark); margin: 0 0 14px; }
+.atb2-panel-back:hover { color: var(--atb2-text) !important; }
+.atb2-concern-heading {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: var(--atb2-dark) !important;
+    margin: 0 0 14px !important;
+}
 .atb2-concern-list {
     display: flex;
     flex-direction: column;
@@ -337,12 +566,19 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
 .atb2-concern-item:hover { border-color: var(--atb2-accent); transform: translateY(-1px); box-shadow: var(--atb2-shadow-md); }
 .atb2-concern-item.is-checked { border-color: var(--atb2-accent); background: #fff9f5; }
 .atb2-concern-item input[type="checkbox"] {
-    width: 18px; height: 18px; min-width: 18px;
+    width: 18px !important; height: 18px !important; min-width: 18px !important;
     accent-color: var(--atb2-accent);
     cursor: pointer;
     flex-shrink: 0;
 }
-.atb2-concern-item label { font-size: 14px; font-weight: 500; color: var(--atb2-text); cursor: pointer; flex: 1; }
+.atb2-concern-item label {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: var(--atb2-text) !important;
+    cursor: pointer;
+    flex: 1;
+    text-transform: none !important;
+}
 
 /* ── EMPTY STATE ── */
 .atb2-empty { display: none; }
@@ -352,68 +588,111 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 40px 24px;
-    min-height: 200px;
-    border: 1.5px dashed #c5bfb5;
-    border-radius: var(--atb2-radius);
+    padding: 32px 24px 20px;
+    min-height: 180px;
 }
-.atb2-empty__title { font-size: 16px; font-weight: 600; color: var(--atb2-dark); margin-bottom: 8px; }
-.atb2-empty__desc { font-size: 14px; color: var(--atb2-muted); max-width: 280px; }
+.atb2-empty__chevron {
+    color: var(--atb2-muted);
+    margin-bottom: 12px;
+    opacity: 0.6;
+}
+.atb2-empty__title {
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    color: var(--atb2-dark) !important;
+    margin-bottom: 8px !important;
+}
+.atb2-empty__desc {
+    font-size: 14px !important;
+    color: var(--atb2-muted) !important;
+    max-width: 300px;
+    line-height: 1.5 !important;
+}
 
 /* ── ACCESSIBLE AREA BUTTONS ── */
-.atb2-area-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.atb2-area-btn {
-    background: none;
-    border: 1px solid var(--atb2-card-border);
-    border-radius: 999px;
-    padding: 6px 14px;
-    font-family: var(--atb2-font);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--atb2-text);
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+.atb2-area-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 4px;
 }
-.atb2-area-btn:hover { background: #f0ece6; border-color: var(--atb2-muted); }
-.atb2-area-btn.has-selections { background: var(--atb2-dark); color: #fff; border-color: var(--atb2-dark); }
-.atb2-area-btn--nav { color: var(--atb2-muted); font-style: italic; }
+.atb2-area-btns.is-hidden { display: none; }
+.atb2-area-btn {
+    background: none !important;
+    border: 1px solid var(--atb2-card-border) !important;
+    border-radius: 999px !important;
+    padding: 6px 14px !important;
+    font-family: var(--atb2-font) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--atb2-text) !important;
+    cursor: pointer !important;
+    transition: background 0.15s, border-color 0.15s !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    line-height: 1.4 !important;
+}
+.atb2-area-btn:hover { background: #f0ece6 !important; border-color: var(--atb2-muted) !important; }
+.atb2-area-btn.has-selections { background: var(--atb2-dark) !important; color: #fff !important; border-color: var(--atb2-dark) !important; }
+.atb2-area-btn--nav { color: var(--atb2-muted) !important; font-style: italic; }
 
 /* ── ADD BUTTON ── */
 .atb2-add-btn {
     display: block;
     width: 100%;
-    padding: 12px 20px;
-    background: var(--atb2-btn-bg);
-    color: #fff;
-    border: none;
-    border-radius: var(--atb2-radius);
-    font-family: var(--atb2-font);
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.2s;
+    padding: 12px 20px !important;
+    background: var(--atb2-btn-bg) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: var(--atb2-radius) !important;
+    font-family: var(--atb2-font) !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    line-height: 1.4 !important;
 }
-.atb2-add-btn:hover { background: var(--atb2-accent); }
-.atb2-add-btn:disabled { opacity: 0.5; cursor: default; }
+.atb2-add-btn:hover { background: var(--atb2-accent) !important; }
+.atb2-add-btn:disabled { opacity: 0.5; cursor: default !important; }
 
 /* ── SELECTIONS SIDEBAR ── */
 .atb2-sel-card { padding: 16px; }
-@media (min-width: 1024px) { .atb2-sel-card { position: sticky; top: 80px; } }
+@media (min-width: 1024px) { .atb2-sel-card { position: sticky; top: calc(var(--wp-admin--admin-bar--height, 0px) + 80px); } }
 .atb2-sel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.atb2-sel-title { font-size: 16px; font-weight: 700; color: var(--atb2-dark); }
+.atb2-sel-title {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: var(--atb2-dark) !important;
+    font-family: var(--atb2-font) !important;
+}
 .atb2-clear-btn {
-    background: none; border: none;
-    font-family: var(--atb2-font);
-    font-size: 13px; color: var(--atb2-accent);
-    cursor: pointer; font-weight: 600;
-    padding: 0;
+    background: none !important;
+    border: none !important;
+    font-family: var(--atb2-font) !important;
+    font-size: 13px !important;
+    color: var(--atb2-accent) !important;
+    cursor: pointer !important;
+    font-weight: 600 !important;
+    padding: 0 !important;
     display: none;
+    text-transform: none !important;
+    box-shadow: none !important;
 }
 .atb2-clear-btn.is-visible { display: block; }
 .atb2-clear-btn:hover { text-decoration: underline; }
 .atb2-sel-list { max-height: 45vh; overflow-y: auto; padding-right: 2px; margin-bottom: 12px; }
 .atb2-sel-area { margin-bottom: 12px; }
-.atb2-sel-area__label { font-size: 12px; font-weight: 700; color: var(--atb2-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.atb2-sel-area__label {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: var(--atb2-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+    font-family: var(--atb2-font) !important;
+}
 .atb2-sel-concerns { display: flex; flex-direction: column; gap: 6px; }
 .atb2-sel-item {
     display: flex;
@@ -424,66 +703,133 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     border: 1px solid var(--atb2-card-border);
     border-radius: 6px;
     background: #fff;
-    font-size: 13px;
-    color: var(--atb2-text);
+    font-size: 13px !important;
+    color: var(--atb2-text) !important;
+    font-family: var(--atb2-font) !important;
 }
 .atb2-sel-item__remove {
-    background: none; border: none;
-    color: var(--atb2-muted);
-    cursor: pointer; font-size: 16px;
-    padding: 0 2px; line-height: 1;
+    background: none !important;
+    border: none !important;
+    color: var(--atb2-muted) !important;
+    cursor: pointer !important;
+    font-size: 16px !important;
+    padding: 0 2px !important;
+    line-height: 1 !important;
     flex-shrink: 0;
     transition: color 0.15s;
+    box-shadow: none !important;
 }
-.atb2-sel-item__remove:hover { color: #c00; }
-.atb2-sel-empty { text-align: center; padding: 24px 16px; color: var(--atb2-muted); font-size: 14px; }
-.atb2-sel-empty__title { font-weight: 600; margin-bottom: 4px; }
+.atb2-sel-item__remove:hover { color: #c00 !important; }
+.atb2-sel-empty { text-align: center; padding: 20px 16px; color: var(--atb2-muted); }
+.atb2-sel-empty__title {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: var(--atb2-text) !important;
+    margin-bottom: 4px;
+    font-family: var(--atb2-font) !important;
+}
+.atb2-sel-empty p {
+    font-size: 13px !important;
+    color: var(--atb2-muted) !important;
+    margin: 0 !important;
+    font-family: var(--atb2-font) !important;
+}
 .atb2-sel-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-.atb2-finish-btn {
-    display: none;
-    width: 100%;
-    padding: 13px 20px;
-    background: var(--atb2-btn-bg);
-    color: #fff;
-    border: none;
-    border-radius: var(--atb2-radius);
-    font-family: var(--atb2-font);
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-.atb2-finish-btn.is-visible { display: block; }
-.atb2-finish-btn:hover { background: var(--atb2-accent); }
-.atb2-more-btn {
-    display: none;
-    width: 100%;
-    padding: 11px 20px;
-    background: transparent;
-    color: var(--atb2-dark);
-    border: 1.5px solid var(--atb2-card-border);
-    border-radius: var(--atb2-radius);
-    font-family: var(--atb2-font);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-}
-.atb2-more-btn.is-visible { display: block; }
-.atb2-more-btn:hover { border-color: var(--atb2-muted); background: var(--atb2-page-bg); }
 
-/* ── FORM SCREEN ── */
+/* Finish button — always visible; disabled when no selections */
+.atb2-finish-btn {
+    display: block;
+    width: 100%;
+    padding: 13px 20px !important;
+    background: var(--atb2-btn-bg) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: var(--atb2-radius) !important;
+    font-family: var(--atb2-font) !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    line-height: 1.4 !important;
+}
+.atb2-finish-btn:hover:not(:disabled) { background: var(--atb2-accent) !important; }
+.atb2-finish-btn:disabled {
+    background: #b5b0a8 !important;
+    cursor: default !important;
+    opacity: 1 !important;
+}
+
+/* More/Select More button — always visible in sidebar */
+.atb2-more-btn {
+    display: block;
+    width: 100%;
+    padding: 11px 20px !important;
+    background: transparent !important;
+    color: var(--atb2-dark) !important;
+    border: 1.5px solid var(--atb2-card-border) !important;
+    border-radius: var(--atb2-radius) !important;
+    font-family: var(--atb2-font) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: border-color 0.15s, background 0.15s !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    line-height: 1.4 !important;
+}
+.atb2-more-btn:hover { border-color: var(--atb2-muted) !important; background: var(--atb2-page-bg) !important; }
+
+/* ══════════════════════════════════════════════════════════════════
+ * FORM SCREEN
+ * ══════════════════════════════════════════════════════════════════ */
 .atb2-form-screen .atb2-inner { max-width: 680px; }
 .atb2-form-header { margin-bottom: 24px; }
-.atb2-form-title { font-size: 28px; font-weight: 700; color: var(--atb2-dark); margin: 0 0 8px; }
-.atb2-form-intro { font-size: 15px; color: var(--atb2-muted); margin: 0 0 8px; }
-.atb2-form-privacy { font-size: 13px; color: var(--atb2-muted); margin: 0 0 20px; font-style: italic; }
-.atb2-form-selections { background: var(--atb2-card-bg); border: 1px solid var(--atb2-card-border); border-radius: var(--atb2-radius); padding: 14px 16px; margin-bottom: 24px; }
-.atb2-form-selections h3 { font-size: 13px; font-weight: 700; color: var(--atb2-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px; }
+.atb2-form-title {
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    color: var(--atb2-dark) !important;
+    margin: 0 0 8px !important;
+}
+.atb2-form-intro {
+    font-size: 15px !important;
+    color: var(--atb2-muted) !important;
+    margin: 0 0 8px !important;
+}
+.atb2-form-privacy {
+    font-size: 13px !important;
+    color: var(--atb2-muted) !important;
+    margin: 0 0 20px !important;
+    font-style: italic;
+}
+.atb2-form-selections {
+    background: var(--atb2-card-bg);
+    border: 1px solid var(--atb2-card-border);
+    border-radius: var(--atb2-radius);
+    padding: 14px 16px;
+    margin-bottom: 24px;
+}
+.atb2-form-selections h3 {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: var(--atb2-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em;
+    margin: 0 0 10px !important;
+}
 .atb2-form-sel-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.atb2-form-sel-tag { background: #f6f0e4; border: 1px solid #c9c0ae; border-radius: 999px; padding: 3px 12px; font-size: 13px; color: var(--atb2-text); font-weight: 500; }
-
-/* ── Form field overrides ── */
+.atb2-form-sel-tag {
+    background: #f6f0e4;
+    border: 1px solid #c9c0ae;
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 13px !important;
+    color: var(--atb2-text) !important;
+    font-weight: 500 !important;
+    font-family: var(--atb2-font) !important;
+}
+/* Form field overrides */
 .atb2-form-wrap input[type="text"],
 .atb2-form-wrap input[type="email"],
 .atb2-form-wrap input[type="tel"],
@@ -498,6 +844,7 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     font-family: var(--atb2-font) !important; color: var(--atb2-text) !important;
     box-shadow: none !important; outline: none !important;
     transition: border-color 0.2s !important; -webkit-appearance: none !important;
+    text-transform: none !important;
 }
 .atb2-form-wrap textarea { height: auto !important; min-height: 100px !important; padding: 12px 16px !important; resize: vertical !important; }
 .atb2-form-wrap input:focus, .atb2-form-wrap select:focus, .atb2-form-wrap textarea:focus {
@@ -523,13 +870,39 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     height: 56px !important; padding: 0 24px !important;
     background: var(--atb2-btn-bg) !important; color: #fff !important; border: none !important;
     border-radius: var(--atb2-radius) !important; font-size: 17px !important; font-weight: 700 !important;
-    font-family: var(--atb2-font) !important; cursor: pointer !important; transition: background 0.2s !important;
+    font-family: var(--atb2-font) !important; cursor: pointer !important;
+    transition: background 0.2s !important; text-transform: none !important;
 }
 .atb2-form-wrap input[type="submit"]:hover, .atb2-form-wrap button[type="submit"]:hover,
 .atb2-form-wrap .gform_button:hover, .atb2-form-wrap .wpforms-submit:hover { background: var(--atb2-accent) !important; }
-.atb2-form-wrap label { font-weight: 600 !important; color: var(--atb2-text) !important; font-size: 14px !important; margin-bottom: 6px !important; display: block !important; }
+.atb2-form-wrap label {
+    font-weight: 600 !important; color: var(--atb2-text) !important;
+    font-size: 14px !important; margin-bottom: 6px !important;
+    display: block !important; text-transform: none !important;
+    font-family: var(--atb2-font) !important;
+}
 .atb2-form-wrap .gform_wrapper, .atb2-form-wrap .gform_body { padding: 0 !important; margin: 0 !important; }
 .atb2-form-wrap .wpforms-field { margin-bottom: 18px !important; }
+
+/* Form back link */
+.atb2-form-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px !important;
+    color: var(--atb2-muted) !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
+    margin-top: 16px;
+    cursor: pointer;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    font-family: var(--atb2-font) !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+}
+.atb2-form-back-link:hover { color: var(--atb2-text) !important; text-decoration: underline !important; }
 
 /* ── EXIT / GENDER MODAL ── */
 .atb2-modal-bg {
@@ -548,13 +921,51 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
     width: 90%;
     box-shadow: 0 20px 60px rgba(0,0,0,0.25);
 }
-.atb2-modal h2 { font-size: 22px; font-weight: 700; color: var(--atb2-dark); margin: 0 0 10px; }
-.atb2-modal p { font-size: 14px; color: var(--atb2-muted); margin: 0 0 24px; }
+.atb2-modal h2 {
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    color: var(--atb2-dark) !important;
+    margin: 0 0 10px !important;
+    text-transform: none !important;
+}
+.atb2-modal p {
+    font-size: 14px !important;
+    color: var(--atb2-muted) !important;
+    margin: 0 0 24px !important;
+    text-transform: none !important;
+}
 .atb2-modal-btns { display: flex; gap: 10px; flex-direction: column; }
-.atb2-modal-confirm { padding: 12px; background: var(--atb2-btn-bg); color: #fff; border: none; border-radius: var(--atb2-radius); font-family: var(--atb2-font); font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; text-align: center; }
-.atb2-modal-confirm:hover { background: var(--atb2-accent); }
-.atb2-modal-cancel { padding: 12px; background: transparent; color: var(--atb2-text); border: 1.5px solid var(--atb2-card-border); border-radius: var(--atb2-radius); font-family: var(--atb2-font); font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-.atb2-modal-cancel:hover { background: #f0ece6; }
+.atb2-modal-confirm {
+    padding: 12px !important;
+    background: var(--atb2-btn-bg) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: var(--atb2-radius) !important;
+    font-family: var(--atb2-font) !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+    text-align: center;
+    text-transform: none !important;
+    box-shadow: none !important;
+}
+.atb2-modal-confirm:hover { background: var(--atb2-accent) !important; }
+.atb2-modal-cancel {
+    padding: 12px !important;
+    background: transparent !important;
+    color: var(--atb2-text) !important;
+    border: 1.5px solid var(--atb2-card-border) !important;
+    border-radius: var(--atb2-radius) !important;
+    font-family: var(--atb2-font) !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+}
+.atb2-modal-cancel:hover { background: #f0ece6 !important; }
 
 /* ── ANIMATION ── */
 @keyframes atb2-rise-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -568,8 +979,9 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
 /* ── RESPONSIVE ── */
 @media (max-width: 600px) {
     .atb2-nav__inner { padding: 0 16px; }
-    .atb2-inner { padding: 16px 16px 40px; }
+    .atb2-inner, .atb2-intro-inner { padding: 16px 16px 40px; }
     .atb2-controls { flex-direction: column; align-items: flex-start; }
+    .atb2-intro-heading { font-size: 26px !important; }
 }
 </style>
 
@@ -579,9 +991,9 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
   <nav class="atb2-nav" role="banner">
     <div class="atb2-nav__inner">
       <div>
-        <button class="atb2-nav__back" id="atb2-nav-back">&#8592; Back</button>
+        <button class="atb2-nav__back is-hidden" id="atb2-nav-back" type="button">&#8592; Back</button>
       </div>
-      <a href="<?php echo $atbm_home_url; ?>" tabindex="-1">
+      <a href="<?php echo $atbm_home_url; ?>" tabindex="-1" aria-label="Home">
         <img class="atb2-nav__logo" src="<?php echo $atbm_logo_src; ?>" alt="">
       </a>
       <div>
@@ -592,27 +1004,85 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
 
   <div class="atb2-page-body">
 
-    <!-- BUILDER SCREEN -->
-    <div class="atb2-screen is-active" id="atb2-builder">
+    <!-- ═══════════════════════════════════════════════════════════════
+         INTRO SCREEN (shown first)
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="atb2-screen is-active" id="atb2-intro">
+      <div class="atb2-intro-inner">
+        <div class="atb2-intro-grid">
+
+          <!-- Left: content -->
+          <div class="atb2-intro-left">
+            <p class="atb2-intro-brand"><?php echo esc_html( atb_text( 'intro_name' ) ); ?></p>
+            <h1 class="atb2-intro-heading"><?php echo esc_html( atb_text( 'intro_heading' ) ); ?></h1>
+            <p class="atb2-intro-subtitle">A private, guided way to share your goals before your visit.</p>
+            <div class="atb2-intro-privacy">
+              <p><?php echo esc_html( atb_text( 'intro_privacy' ) ); ?></p>
+            </div>
+            <div class="atb2-intro-steps">
+              <div class="atb2-step-card">
+                <span class="atb2-step-num">01</span>
+                <p><?php echo esc_html( atb_text( 'step_1' ) ); ?></p>
+              </div>
+              <div class="atb2-step-card">
+                <span class="atb2-step-num">02</span>
+                <p><?php echo esc_html( atb_text( 'step_2' ) ); ?></p>
+              </div>
+              <div class="atb2-step-card">
+                <span class="atb2-step-num">03</span>
+                <p><?php echo esc_html( atb_text( 'step_3' ) ); ?></p>
+              </div>
+            </div>
+            <div class="atb2-intro-actions">
+              <button class="atb2-start-btn" id="atb2-start-btn" type="button">
+                <?php echo esc_html( atb_text( 'start_btn' ) ); ?>
+              </button>
+              <a href="<?php echo $atbm_home_url; ?>" class="atb2-visit-link">
+                Visit <?php echo esc_html( atb_text( 'intro_name' ) ); ?>
+              </a>
+            </div>
+          </div><!-- /intro-left -->
+
+          <!-- Right: body figure -->
+          <div class="atb2-intro-right">
+            <div class="atb2-intro-figure-card">
+              <?php
+              $intro_svg_path = $atbm_svg_dir . $atbm_figures['female-front'];
+              if ( file_exists( $intro_svg_path ) ) {
+                  // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                  echo file_get_contents( $intro_svg_path );
+              }
+              ?>
+            </div>
+          </div><!-- /intro-right -->
+
+        </div><!-- /intro-grid -->
+      </div><!-- /intro-inner -->
+    </div><!-- /intro screen -->
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         BUILDER SCREEN
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="atb2-screen" id="atb2-builder">
       <div class="atb2-inner">
 
         <!-- Controls: gender + view toggles -->
         <div class="atb2-controls">
           <div class="atb2-seg" role="group" aria-label="Select gender">
-            <button class="atb2-seg__btn is-active" data-atb2-gender="female">Female</button>
-            <button class="atb2-seg__btn" data-atb2-gender="male">Male</button>
+            <button class="atb2-seg__btn is-active" type="button" data-atb2-gender="female">Female</button>
+            <button class="atb2-seg__btn" type="button" data-atb2-gender="male">Male</button>
           </div>
           <div class="atb2-seg" role="group" aria-label="Select view">
-            <button class="atb2-seg__btn is-active" data-atb2-view="front">Full Body</button>
-            <button class="atb2-seg__btn" data-atb2-view="back">Back</button>
-            <button class="atb2-seg__btn" data-atb2-view="face">Face &amp; Neck</button>
+            <button class="atb2-seg__btn is-active" type="button" data-atb2-view="front">Full Body</button>
+            <button class="atb2-seg__btn" type="button" data-atb2-view="back">Back</button>
+            <button class="atb2-seg__btn" type="button" data-atb2-view="face">Face &amp; Neck</button>
           </div>
         </div>
 
         <!-- Main grid -->
         <div class="atb2-grid">
 
-          <!-- Left: map + concern panel -->
+          <!-- Left: map card -->
           <div>
             <div class="atb2-card atb2-map-card">
               <div class="atb2-map-grid">
@@ -632,7 +1102,7 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
                         echo file_get_contents( $svg_path );
                     }
                     foreach ( $hs_list as $hs ) :
-                        $hs_is_nav  = isset( $hs['nav'] );
+                        $hs_is_nav    = isset( $hs['nav'] );
                         $hs_nav_attr  = $hs_is_nav ? ' data-atb2-nav-view="' . esc_attr( $hs['nav'] ) . '"' : '';
                         $hs_area_attr = ! $hs_is_nav ? ' data-atb2-area-id="' . esc_attr( $hs['id'] ) . '"' : '';
                     ?>
@@ -649,13 +1119,21 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
                   <?php endforeach; ?>
                 </div><!-- /body-stage -->
 
-                <!-- Right side of map grid: empty state OR concern panel -->
-                <div>
+                <!-- Right side: empty state OR concern panel + area buttons -->
+                <div class="atb2-map-right">
+
+                  <!-- Empty state -->
                   <div class="atb2-empty is-active" id="atb2-empty">
+                    <div class="atb2-empty__chevron">
+                      <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M1 1L11 12L21 1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
                     <div class="atb2-empty__title">Choose a body area</div>
-                    <div class="atb2-empty__desc">Use the map or the buttons below to view concern checklists.</div>
+                    <div class="atb2-empty__desc">Use the map or the accessible list below to view concern checklists.</div>
                   </div>
 
+                  <!-- Concern panel (shown when area is selected) -->
                   <div class="atb2-concern-panel" id="atb2-concern-panel">
                     <button class="atb2-panel-back" id="atb2-panel-back" type="button">&#8592; Choose a body area</button>
                     <h2 class="atb2-concern-heading" id="atb2-concern-heading">Concerns</h2>
@@ -664,14 +1142,15 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
                       <?php echo esc_html( atb_text( 'more_btn' ) ); ?> (0)
                     </button>
                   </div>
-                </div>
+
+                  <!-- Accessible area buttons (inside right panel) -->
+                  <div class="atb2-area-btns" id="atb2-area-btns" role="group" aria-label="Select a body area"></div>
+
+                </div><!-- /map-right -->
 
               </div><!-- /map-grid -->
-
-              <!-- Accessible area buttons -->
-              <div class="atb2-area-btns" id="atb2-area-btns" role="group" aria-label="Select a body area"></div>
-            </div>
-          </div><!-- /left -->
+            </div><!-- /map-card -->
+          </div><!-- /left col -->
 
           <!-- Right: Selections sidebar -->
           <aside>
@@ -683,20 +1162,27 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
               <div class="atb2-sel-list" id="atb2-sel-list">
                 <div class="atb2-sel-empty" id="atb2-sel-empty">
                   <div class="atb2-sel-empty__title"><?php echo esc_html( atb_text( 'empty_state' ) ); ?></div>
-                  <div><?php echo esc_html( atb_text( 'empty_instructions' ) ); ?></div>
+                  <p><?php echo esc_html( atb_text( 'empty_instructions' ) ); ?></p>
                 </div>
               </div>
               <div class="atb2-sel-actions">
-                <button class="atb2-finish-btn" id="atb2-finish-btn" type="button"><?php echo esc_html( atb_text( 'finish_btn' ) ); ?></button>
+                <button class="atb2-finish-btn" id="atb2-finish-btn" type="button" disabled>
+                  <?php echo esc_html( atb_text( 'finish_btn' ) ); ?>
+                </button>
+                <button class="atb2-more-btn" id="atb2-more-btn" type="button">
+                  <?php echo esc_html( atb_text( 'more_btn' ) ); ?>
+                </button>
               </div>
             </div>
-          </aside>
+          </aside><!-- /sidebar -->
 
         </div><!-- /grid -->
       </div><!-- /inner -->
     </div><!-- /builder screen -->
 
-    <!-- FORM SCREEN -->
+    <!-- ═══════════════════════════════════════════════════════════════
+         FORM SCREEN
+         ═══════════════════════════════════════════════════════════ -->
     <div class="atb2-screen atb2-form-screen" id="atb2-form-screen">
       <div class="atb2-inner">
         <div class="atb2-form-header">
@@ -728,9 +1214,9 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
               <?php endif;
           endif; ?>
         </div>
-        <div class="atb2-sel-actions" style="margin-top:16px;">
-          <button class="atb2-more-btn is-visible" id="atb2-more-btn" type="button">&#8592; <?php echo esc_html( atb_text( 'more_btn' ) ); ?></button>
-        </div>
+        <button class="atb2-form-back-link" id="atb2-form-back-btn" type="button">
+          &#8592; <?php echo esc_html( atb_text( 'more_btn' ) ); ?>
+        </button>
       </div>
     </div><!-- /form screen -->
 
@@ -767,18 +1253,19 @@ body.atb2-page [class*="ast-container"], body.atb2-page .container:not(.atb2-inn
 'use strict';
 
 /* ── DATA ── */
-var AREAS       = <?php echo wp_json_encode( $atbm_js_areas ); ?>;
-var RESULTS_URL = <?php echo wp_json_encode( $atbm_results_url ); ?>;
-var FORM_PLUGIN = <?php echo wp_json_encode( $atbm_form_plugin ); ?>;
-var HOME_URL    = <?php echo wp_json_encode( $atbm_home_url ); ?>;
+var AREAS        = <?php echo wp_json_encode( $atbm_js_areas ); ?>;
+var RESULTS_URL  = <?php echo wp_json_encode( $atbm_results_url ); ?>;
+var FORM_PLUGIN  = <?php echo wp_json_encode( $atbm_form_plugin ); ?>;
+var HOME_URL     = <?php echo wp_json_encode( $atbm_home_url ); ?>;
 var ADD_BTN_TEXT = <?php echo wp_json_encode( atb_text( 'more_btn' ) ); ?>;
 
 /* ── STATE ── */
 var state = {
     gender: 'female',
     view:   'front',
-    activeAreaId: null,
+    activeAreaId:  null,
     pendingGender: null,
+    currentScreen: 'intro', // 'intro' | 'builder' | 'form'
     selections: {},  // { areaId: { label: '', concerns: [{id, label}] } }
 };
 
@@ -799,23 +1286,36 @@ function getArea(id) { return AREAS[id] || null; }
 /* ── DOM ── */
 var $ = function(sel){ return document.querySelector(sel); };
 
-var elBodies     = document.querySelectorAll('.atb2-body-view');
-var elEmpty      = $('#atb2-empty');
-var elPanel      = $('#atb2-concern-panel');
-var elPanelBack  = $('#atb2-panel-back');
-var elHeading    = $('#atb2-concern-heading');
-var elList       = $('#atb2-concern-list');
-var elAddBtn     = $('#atb2-add-btn');
-var elAreaBtns   = $('#atb2-area-btns');
-var elSelList    = $('#atb2-sel-list');
-var elSelEmpty   = $('#atb2-sel-empty');
-var elSelCount   = $('#atb2-sel-count');
-var elClearBtn   = $('#atb2-clear-all');
-var elFinishBtn  = $('#atb2-finish-btn');
-var elMoreBtn    = $('#atb2-more-btn');
-var elBuilder    = $('#atb2-builder');
-var elFormScreen = $('#atb2-form-screen');
-var elFormTags   = $('#atb2-form-sel-tags');
+var elBodies       = document.querySelectorAll('.atb2-body-view');
+var elEmpty        = $('#atb2-empty');
+var elPanel        = $('#atb2-concern-panel');
+var elPanelBack    = $('#atb2-panel-back');
+var elHeading      = $('#atb2-concern-heading');
+var elList         = $('#atb2-concern-list');
+var elAddBtn       = $('#atb2-add-btn');
+var elAreaBtns     = $('#atb2-area-btns');
+var elSelList      = $('#atb2-sel-list');
+var elSelEmpty     = $('#atb2-sel-empty');
+var elSelCount     = $('#atb2-sel-count');
+var elClearBtn     = $('#atb2-clear-all');
+var elFinishBtn    = $('#atb2-finish-btn');
+var elMoreBtn      = $('#atb2-more-btn');
+var elFormBackBtn  = $('#atb2-form-back-btn');
+var elNavBack      = $('#atb2-nav-back');
+var elIntro        = $('#atb2-intro');
+var elBuilder      = $('#atb2-builder');
+var elFormScreen   = $('#atb2-form-screen');
+var elFormTags     = $('#atb2-form-sel-tags');
+
+/* ── SCREEN NAVIGATION ── */
+function showScreen(name) {
+    state.currentScreen = name;
+    elIntro.classList.toggle('is-active', name === 'intro');
+    elBuilder.classList.toggle('is-active', name === 'builder');
+    elFormScreen.classList.toggle('is-active', name === 'form');
+    // Nav back button: hidden on intro, visible on builder/form
+    elNavBack.classList.toggle('is-hidden', name === 'intro');
+}
 
 /* ── BODY VIEW SWITCH ── */
 function showView(gender, view) {
@@ -827,7 +1327,11 @@ function showView(gender, view) {
 /* ── AREA BUTTONS (accessible list) ── */
 function renderAreaBtns() {
     var areas = getAreasForView();
+    var isPanelOpen = elPanel.classList.contains('is-active');
+
     elAreaBtns.innerHTML = '';
+    elAreaBtns.classList.toggle('is-hidden', isPanelOpen);
+
     if (state.view !== 'face') {
         var navBtn = document.createElement('button');
         navBtn.className = 'atb2-area-btn atb2-area-btn--nav';
@@ -857,6 +1361,7 @@ function openArea(areaId) {
     state.activeAreaId = areaId;
     elEmpty.classList.remove('is-active');
     elPanel.classList.add('is-active');
+    elAreaBtns.classList.add('is-hidden');
     elHeading.textContent = area.header;
     renderConcernList(area);
     updateAddBtn();
@@ -945,7 +1450,8 @@ function renderSelections() {
     var total = totalCount();
     elSelCount.textContent = total;
     elClearBtn.classList.toggle('is-visible', total > 0);
-    elFinishBtn.classList.toggle('is-visible', total > 0);
+    // Enable/disable Finish button
+    elFinishBtn.disabled = (total === 0);
 
     elSelList.querySelectorAll('.atb2-sel-area').forEach(function(el){ el.remove(); });
 
@@ -1079,12 +1585,18 @@ document.querySelectorAll('.atb2-hotspot[data-atb2-nav-view]').forEach(function(
     });
 });
 
+/* ── INTRO → BUILDER ── */
+$('#atb2-start-btn').addEventListener('click', function() {
+    showScreen('builder');
+});
+
 /* ── FINISH PLAN ── */
-elFinishBtn.addEventListener('click', showFormScreen);
+elFinishBtn.addEventListener('click', function() {
+    if (totalCount() > 0) showFormScreen();
+});
 
 function showFormScreen() {
-    elBuilder.classList.remove('is-active');
-    elFormScreen.classList.add('is-active');
+    showScreen('form');
 
     // Populate concern tags
     elFormTags.innerHTML = '';
@@ -1107,29 +1619,38 @@ function showFormScreen() {
         });
     });
 
-    // Store in sessionStorage for WPForms redirect handler
+    // Store for WPForms redirect handler
     try { sessionStorage.setItem('atb_pending_concerns', JSON.stringify(concernIds)); } catch(ex) {}
 
-    // Inject concerns into Gravity Forms hidden field (CSS class: atb-concerns)
+    // Inject concerns into Gravity Forms hidden field
     var concernsJson = JSON.stringify(concernsObj);
     var gfHidden = document.querySelector('.atb2-form-wrap .gfield.atb-concerns input[type="hidden"]');
     if (gfHidden) gfHidden.value = concernsJson;
     document.querySelectorAll('.atb2-form-wrap input.atb-concerns').forEach(function(el){ el.value = concernsJson; });
 }
 
-/* ── SELECT MORE ── */
+/* ── SELECT MORE (sidebar) ── */
 elMoreBtn.addEventListener('click', function() {
-    elFormScreen.classList.remove('is-active');
-    elBuilder.classList.add('is-active');
+    // Scroll to body stage so user can interact with the map
+    var stage = $('#atb2-body-stage');
+    if (stage) stage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+/* ── FORM BACK ── */
+elFormBackBtn.addEventListener('click', function() {
+    showScreen('builder');
 });
 
 /* ── NAV BACK ── */
-$('#atb2-nav-back').addEventListener('click', function() {
-    if (elFormScreen.classList.contains('is-active')) {
-        elFormScreen.classList.remove('is-active');
-        elBuilder.classList.add('is-active');
-    } else if (elPanel.classList.contains('is-active')) {
-        closePanel();
+elNavBack.addEventListener('click', function() {
+    if (state.currentScreen === 'form') {
+        showScreen('builder');
+    } else if (state.currentScreen === 'builder') {
+        if (elPanel.classList.contains('is-active')) {
+            closePanel();
+        } else {
+            showScreen('intro');
+        }
     } else {
         window.history.back();
     }
@@ -1162,8 +1683,65 @@ document.body.classList.add('atb2-page');
 <?php endif; ?>
 
 /* ── INIT ── */
+showScreen('intro');
 renderAreaBtns();
 renderSelections();
 
 })();
 </script>
+
+<?php if ( 'wpforms' === $atbm_form_plugin && $atbm_results_url ) : ?>
+<script>
+/* WPForms redirect handler for modern template (atb-script not loaded in modern mode) */
+jQuery(function($) {
+    var resultsUrl = <?php echo wp_json_encode( $atbm_results_url ); ?>;
+    if (!resultsUrl) return;
+
+    function atbGetFirstName() {
+        var $native = $('.wpforms-form .wpforms-field-name-first input');
+        if ($native.length && $native.val().trim()) return $native.val().trim().split(' ')[0];
+        var $auto = $('.wpforms-form input[autocomplete="given-name"]');
+        if ($auto.length && $auto.val().trim()) return $auto.val().trim().split(' ')[0];
+        var fname = '';
+        $('.wpforms-form .wpforms-field').each(function() {
+            var label = $(this).find('label').first().text().trim().toLowerCase();
+            if (label.indexOf('first') !== -1) {
+                var val = $(this).find('input[type="text"]').first().val().trim();
+                if (val) { fname = val.split(' ')[0]; return false; }
+            }
+        });
+        if (fname) return fname;
+        var $first = $('.wpforms-form input[type="text"]').first();
+        return $first.length ? ($first.val().trim().split(' ')[0] || '') : '';
+    }
+
+    $(document).on('input change', '.wpforms-form input[type="text"]', function() {
+        var $field = $(this).closest('.wpforms-field');
+        var label  = $field.find('label').first().text().trim().toLowerCase();
+        var isFirst = label.indexOf('first') !== -1 || $('.wpforms-form input[type="text"]').first().is(this);
+        if (isFirst) {
+            var fname = $(this).val().trim().split(' ')[0] || '';
+            try { sessionStorage.setItem('atb_pending_username', fname); } catch(ex) {}
+        }
+    });
+
+    function handleSuccess(e, res) {
+        if (res && (!res.success || (res.data && (res.data.errors || res.data.is_error)))) return;
+        var concerns = [];
+        try { concerns = JSON.parse(sessionStorage.getItem('atb_pending_concerns') || '[]'); } catch(ex) {}
+        var username = atbGetFirstName() || sessionStorage.getItem('atb_pending_username') || 'You';
+        sessionStorage.removeItem('atb_pending_concerns');
+        sessionStorage.removeItem('atb_pending_username');
+        if (!concerns.length) return;
+        var sep = resultsUrl.indexOf('?') !== -1 ? '&' : '?';
+        var url = resultsUrl + sep
+            + 'concerns=' + encodeURIComponent(JSON.stringify(concerns))
+            + '&username=' + encodeURIComponent(username);
+        setTimeout(function() { window.location.href = url; }, 300);
+    }
+
+    $(document).on('wpformsAjaxSubmitSuccess',  handleSuccess);
+    $(document).on('wpformsAjaxRequestSuccess', handleSuccess);
+});
+</script>
+<?php endif; ?>

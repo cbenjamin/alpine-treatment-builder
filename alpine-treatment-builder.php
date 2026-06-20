@@ -1496,6 +1496,9 @@ add_action( 'wp_enqueue_scripts', function () {
     $font_param = str_replace( ' ', '+', $font );
     wp_enqueue_style( 'atb-font', "https://fonts.googleapis.com/css2?family={$font_param}:wght@400;500;600;700&display=swap", [], null );
 
+    // Modern mode: template handles all styles and scripts inline — skip classic assets.
+    if ( 'modern' === atb_style() ) { return; }
+
     wp_enqueue_style( 'atb-styles', ATB_URL . 'public/css/alpine-tb.css', [ 'atb-font' ], ATB_VERSION );
 
     // ── Dynamic CSS ───────────────────────────────────────────────────────────
