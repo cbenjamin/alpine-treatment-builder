@@ -45,17 +45,29 @@ $atb_updater->getVcsApi()->enableReleaseAssets();
 function atb_defaults() {
     return [
 
-        /* ---- Colors ---- */
+        /* ---- Colors (Classic style) ---- */
         'colors' => [
             'base_bg'      => [ 'label' => 'Accent Background',  'default' => '#f1eadb', 'desc' => 'Cream panel behind the selections list' ],
             'body_text'    => [ 'label' => 'Body Text',          'default' => '#21403e', 'desc' => 'Main text color throughout the builder' ],
             'header'       => [ 'label' => 'Headings',           'default' => '#091714', 'desc' => 'Color for headings and titles' ],
-            'btn_bg'       => [ 'label' => 'Button Background',   'default' => '#21403e', 'desc' => 'Default background color for submit / CTA buttons' ],
+            'btn_bg'       => [ 'label' => 'Button Background',  'default' => '#21403e', 'desc' => 'Default background color for submit / CTA buttons' ],
             'primary'      => [ 'label' => 'Primary / CTA',      'default' => '#a3663c', 'desc' => 'Hover color for buttons, selected hotspots' ],
             'secondary'    => [ 'label' => 'Secondary',          'default' => '#666a6b', 'desc' => 'Secondary text and button color' ],
             'navbar_bg'    => [ 'label' => 'Navbar Background',  'default' => '#0d211d', 'desc' => 'Background of the top navigation bar' ],
             'navbar_link'  => [ 'label' => 'Navbar Links',       'default' => '#f7f4ef', 'desc' => 'Back / Exit link text color' ],
             'navbar_hover' => [ 'label' => 'Navbar Link Hover',  'default' => '#c97e4a', 'desc' => 'Navbar link color on hover' ],
+        ],
+
+        /* ---- Colors (Modern style) ---- */
+        'modern_colors' => [
+            'm_page_bg'     => [ 'label' => 'Page Background',   'default' => '#f5f0e6', 'desc' => 'Outer page / body background' ],
+            'm_card_bg'     => [ 'label' => 'Card Background',   'default' => '#fffdf8', 'desc' => 'Card and panel background' ],
+            'm_card_border' => [ 'label' => 'Card Border',       'default' => '#d7d0c2', 'desc' => 'Card and panel border color' ],
+            'm_dark'        => [ 'label' => 'Dark / Navbar',     'default' => '#07251e', 'desc' => 'Navbar background and dark heading color' ],
+            'm_text'        => [ 'label' => 'Body Text',         'default' => '#24413b', 'desc' => 'Main body text color' ],
+            'm_muted'       => [ 'label' => 'Muted Text',        'default' => '#52635e', 'desc' => 'Secondary / muted text' ],
+            'm_accent'      => [ 'label' => 'Accent / CTA',      'default' => '#a1603e', 'desc' => 'Buttons hover, selected states, hotspot color' ],
+            'm_btn_bg'      => [ 'label' => 'Button Background', 'default' => '#24413b', 'desc' => 'Default button background' ],
         ],
 
         /* ---- Google Fonts list ---- */
@@ -172,6 +184,81 @@ function atb_use_theme_chrome() {
     return (bool) get_option( 'atb_use_theme_chrome', false );
 }
 
+/** Active UI style: 'classic' | 'modern'. */
+function atb_style() {
+    return get_option( 'atb_style', 'classic' );
+}
+
+/** Resolved modern-style color — saved option → default. */
+function atb_mcolor( $key ) {
+    $defaults = atb_defaults();
+    $default  = $defaults['modern_colors'][ $key ]['default'] ?? '#000000';
+    $saved    = get_option( 'atb_color_' . $key, '' );
+    return sanitize_hex_color( $saved ) ?: $default;
+}
+
+/**
+ * Body areas remapped for the modern (3-tab) interface.
+ * Scalp and Upper Face are moved from 'back' view to 'face' view.
+ */
+function atb_get_body_areas_for_modern() {
+    $face_labels = [ 'Scalp', 'Upper Face' ];
+    $areas = atb_get_body_areas();
+    foreach ( $areas as &$area ) {
+        if ( 'back' === $area['view'] && in_array( $area['section_label'], $face_labels, true ) ) {
+            $area['view'] = 'face';
+        }
+    }
+    unset( $area );
+    return $areas;
+}
+
+/**
+ * Extended hotspot positions for the modern template.
+ * Adds 'face' view entries and Head & Face nav hotspots on front/back.
+ */
+function atb_get_modern_hotspots() {
+    return [
+        'female-front' => [
+            [ 'id' => 51,     'label' => 'General Body', 'top' => '8.62',  'left' => '5.67' ],
+            [ 'id' => 11,     'label' => 'Abdomen',      'top' => '35.19', 'left' => '59.57' ],
+            [ 'id' => 10,     'label' => 'Arms',          'top' => '23.26', 'left' => '89.82' ],
+            [ 'id' => 14,     'label' => 'Hands',         'top' => '49.19', 'left' => '90.78' ],
+            [ 'id' => 19,     'label' => 'Intimate',      'top' => '42.91', 'left' => '34.04' ],
+            [ 'id' => 13,     'label' => 'Lower Legs',    'top' => '79.17', 'left' => '61.70' ],
+            [ 'id' => 'face', 'label' => 'Head & Face',  'top' => '2.5',   'left' => '50.0',  'nav' => 'face' ],
+        ],
+        'female-back' => [
+            [ 'id' => 16,     'label' => 'Back',         'top' => '32.80', 'left' => '62.07' ],
+            [ 'id' => 17,     'label' => 'Buttocks',     'top' => '45.73', 'left' => '30.21' ],
+            [ 'id' => 'face', 'label' => 'Head & Face',  'top' => '2.5',   'left' => '50.0',  'nav' => 'face' ],
+        ],
+        'female-face' => [
+            [ 'id' =>  4, 'label' => 'Scalp',      'top' => '8.0',  'left' => '50.0' ],
+            [ 'id' =>  5, 'label' => 'Upper Face',  'top' => '40.0', 'left' => '50.0' ],
+        ],
+        'male-front' => [
+            [ 'id' => 50,     'label' => 'General Body', 'top' => '8.06',  'left' => '6.90' ],
+            [ 'id' => 29,     'label' => 'Abdomen',      'top' => '35.19', 'left' => '59.57' ],
+            [ 'id' => 28,     'label' => 'Arms',          'top' => '23.26', 'left' => '89.82' ],
+            [ 'id' => 33,     'label' => 'Chest',         'top' => '22.44', 'left' => '25.53' ],
+            [ 'id' => 32,     'label' => 'Hands',         'top' => '49.19', 'left' => '90.78' ],
+            [ 'id' => 37,     'label' => 'Intimate',      'top' => '44.91', 'left' => '37.04' ],
+            [ 'id' => 31,     'label' => 'Lower Legs',    'top' => '79.17', 'left' => '61.70' ],
+            [ 'id' => 'face', 'label' => 'Head & Face',  'top' => '2.5',   'left' => '50.0',  'nav' => 'face' ],
+        ],
+        'male-back' => [
+            [ 'id' => 34,     'label' => 'Back',         'top' => '32.80', 'left' => '62.07' ],
+            [ 'id' => 36,     'label' => 'Buttocks',     'top' => '45.73', 'left' => '30.21' ],
+            [ 'id' => 'face', 'label' => 'Head & Face',  'top' => '2.5',   'left' => '50.0',  'nav' => 'face' ],
+        ],
+        'male-face' => [
+            [ 'id' => 22, 'label' => 'Scalp',      'top' => '8.0',  'left' => '50.0' ],
+            [ 'id' => 23, 'label' => 'Upper Face',  'top' => '40.0', 'left' => '50.0' ],
+        ],
+    ];
+}
+
 /* ===============================================================
  * BODY AREAS DATA LAYER
  * ============================================================= */
@@ -225,6 +312,13 @@ function atb_body_areas_defaults() {
             'concerns' => [
                 [ 'id' => 'woman_back-1011', 'label' => 'Acne' ],
                 [ 'id' => 'woman_back-1025', 'label' => 'Joint Pain' ],
+            ],
+        ],
+        [
+            'id' => 17, 'gender' => 'female', 'view' => 'back',
+            'header' => 'Buttocks Concerns', 'section_label' => 'Buttocks',
+            'concerns' => [
+                [ 'id' => 'woman_buttocks-959', 'label' => 'Acne' ],
             ],
         ],
         [
@@ -574,9 +668,13 @@ add_action( 'admin_init', function () {
     register_setting( 'atb_settings_general', 'atb_logo_url',        [ 'sanitize_callback' => 'esc_url_raw',      'default' => '' ] );
     register_setting( 'atb_settings_general', 'atb_use_theme_chrome',[ 'sanitize_callback' => fn($v) => $v ? '1' : '0', 'default' => '0' ] );
     register_setting( 'atb_settings_general', 'atb_results_page_id', [ 'sanitize_callback' => 'absint',           'default' => 0 ] );
+    register_setting( 'atb_settings_general', 'atb_style',           [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'classic' ] );
 
     // ── Branding ─────────────────────────────────────────────────────────────
     foreach ( $d['colors'] as $key => $info ) {
+        register_setting( 'atb_settings_branding', 'atb_color_' . $key, [ 'sanitize_callback' => 'sanitize_hex_color', 'default' => $info['default'] ] );
+    }
+    foreach ( $d['modern_colors'] as $key => $info ) {
         register_setting( 'atb_settings_branding', 'atb_color_' . $key, [ 'sanitize_callback' => 'sanitize_hex_color', 'default' => $info['default'] ] );
     }
     register_setting( 'atb_settings_branding', 'atb_font_family', [ 'sanitize_callback' => 'sanitize_text_field', 'default' => 'Inter' ] );
@@ -757,6 +855,30 @@ function atb_render_settings_page() {
             </tr>
         </table>
 
+        <h2 class="title"><?php esc_html_e( 'Style', 'alpine-tb' ); ?></h2>
+        <p class="atb-section-intro"><?php esc_html_e( 'Choose the visual style of the treatment builder. Both styles share the same data, treatments, and branding colors.', 'alpine-tb' ); ?></p>
+        <?php $atb_style = get_option( 'atb_style', 'classic' ); ?>
+        <table class="form-table" role="presentation">
+            <tr>
+                <th><label for="atb_style"><?php esc_html_e( 'UI Style', 'alpine-tb' ); ?></label></th>
+                <td>
+                    <fieldset>
+                        <label style="display:block;margin-bottom:10px;">
+                            <input type="radio" name="atb_style" value="classic" <?php checked( $atb_style, 'classic' ); ?>>
+                            <strong><?php esc_html_e( 'Classic', 'alpine-tb' ); ?></strong>
+                            <span class="description" style="margin-left:6px;"><?php esc_html_e( '— Original sidebar layout with illustrated body-map hotspots.', 'alpine-tb' ); ?></span>
+                        </label>
+                        <label style="display:block;">
+                            <input type="radio" name="atb_style" value="modern" <?php checked( $atb_style, 'modern' ); ?>>
+                            <strong><?php esc_html_e( 'Modern', 'alpine-tb' ); ?></strong>
+                            <span class="description" style="margin-left:6px;"><?php esc_html_e( '— Card-based design with Full Body / Back / Face &amp; Neck tabs and selections sidebar.', 'alpine-tb' ); ?></span>
+                        </label>
+                    </fieldset>
+                    <p class="description" style="margin-top:8px;"><?php esc_html_e( 'Modern style colors are configured under the Branding tab.', 'alpine-tb' ); ?></p>
+                </td>
+            </tr>
+        </table>
+
         <h2 class="title"><?php esc_html_e( 'Layout', 'alpine-tb' ); ?></h2>
         <table class="form-table" role="presentation">
             <tr>
@@ -780,11 +902,33 @@ function atb_render_settings_page() {
     <form method="post" action="options.php">
         <?php settings_fields( 'atb_settings_branding' ); ?>
 
-        <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Colors', 'alpine-tb' ); ?></h2>
-        <p class="atb-section-intro"><?php esc_html_e( 'These colors are applied as CSS custom properties throughout the treatment builder. Changes take effect immediately on save.', 'alpine-tb' ); ?></p>
+        <h2 class="title" style="margin-top:24px;"><?php esc_html_e( 'Classic Style Colors', 'alpine-tb' ); ?></h2>
+        <p class="atb-section-intro"><?php esc_html_e( 'Colors for the Classic UI style. Applied as CSS custom properties.', 'alpine-tb' ); ?></p>
 
         <div class="atb-color-grid">
             <?php foreach ( $d['colors'] as $key => $info ) :
+                $option_name  = 'atb_color_' . $key;
+                $saved        = get_option( $option_name, '' );
+                $value        = sanitize_hex_color( $saved ) ?: $info['default'];
+            ?>
+            <div class="atb-color-field">
+                <label for="<?php echo esc_attr( $option_name ); ?>"><?php echo esc_html( $info['label'] ); ?></label>
+                <input type="text"
+                       name="<?php echo esc_attr( $option_name ); ?>"
+                       id="<?php echo esc_attr( $option_name ); ?>"
+                       value="<?php echo esc_attr( $value ); ?>"
+                       class="atb-color-picker"
+                       data-default-color="<?php echo esc_attr( $info['default'] ); ?>">
+                <p class="description"><?php echo esc_html( $info['desc'] ); ?></p>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <h2 class="title" style="margin-top:36px;"><?php esc_html_e( 'Modern Style Colors', 'alpine-tb' ); ?></h2>
+        <p class="atb-section-intro"><?php esc_html_e( 'Colors for the Modern UI style (card-based design with tabs).', 'alpine-tb' ); ?></p>
+
+        <div class="atb-color-grid">
+            <?php foreach ( $d['modern_colors'] as $key => $info ) :
                 $option_name  = 'atb_color_' . $key;
                 $saved        = get_option( $option_name, '' );
                 $value        = sanitize_hex_color( $saved ) ?: $info['default'];
@@ -1333,6 +1477,7 @@ add_filter( 'body_class', function ( $classes ) {
     if ( atb_page_has_shortcode() ) {
         $classes[] = 'atb-page';
         if ( atb_use_theme_chrome() ) $classes[] = 'atb-page--with-chrome';
+        if ( 'modern' === atb_style() ) $classes[] = 'atb-page--modern';
     }
     if ( atb_page_has_results_shortcode() ) {
         $classes[] = 'atb-results-page';
@@ -2835,7 +2980,11 @@ function atb_render_results_page() {
 
 add_shortcode( 'alpine_treatment_builder', function () {
     ob_start();
-    include ATB_PATH . 'templates/main.php';
+    if ( 'modern' === atb_style() ) {
+        include ATB_PATH . 'templates/main-v2.php';
+    } else {
+        include ATB_PATH . 'templates/main.php';
+    }
     return ob_get_clean();
 } );
 
